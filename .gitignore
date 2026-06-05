@@ -10,6 +10,7 @@ out/
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 .obsidian/cache
+.obsidian
 
 # OS
 .DS_Store
