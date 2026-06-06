@@ -29,6 +29,6 @@ tags: [meta, claude_md]
 
 작업 종류에 따라 위 문서들 외에 추가로 참조할 곳:
 
-- **L3 모듈 설계**: `L3_modules/` 내 기존 문서 (양식 일관성)
-- **L4 함수 명세**: 해당 L3 모듈 문서
-- **L5 코드 작성**: 해당 L4 함수 문서, `L5_implementation/CLAUDE.md`
+- **L3 계약(인터페이스)**: `L3_interface/` 내 기존 문서 (양식 일관성)
+- **L4 기전(의사코드)**: 해당 구성요소의 L3 계약 문서
+- **L5 코드 작성**: 해당 L4 기전 문서, `L5_implementation/CLAUDE.md`

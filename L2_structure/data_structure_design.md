@@ -153,6 +153,30 @@ enqueue(pushBack)/dequeue(popFront)가 양끝 O(1)이다. 담는 것: Graph Node
 더하며 ϕ를 씌운 값의 최솟값으로 각 노드의 최소 도달시간을 확정하고,
 predecessor 체인을 목표→시작으로 역추적해 경로를 복원한다.
 
+## 구체 Data 자식
+
+자료구조는 `Data*`만 다룬다. 실제 담기는 구체 타입은 `Data`를 상속한
+도메인 클래스이며, **각자의 도메인 모듈에 산다**(자료구조 모듈엔 베이스만).
+여기는 그 인덱스다. 상세는 각 도메인 모듈 문서에서.
+
+| 구체 Data | 도메인 모듈 | 담기는 곳 | 비교(`operator<`) |
+|---|---|---|---|
+| Interval | reservation_table | avl_tree | override — 시작점 순 |
+| Agent | pp | min_heap | override — 우선순위 |
+| (TEG 정점) | planner/graph | queue | 불필요 (FIFO) — 미결 |
+
+**Interval** (확정 2026-06-06). `[start, end)` 정수 반열림 구간. 필드는
+`start`/`end`만(간단 버전 — agent id 등은 병합과 충돌하므로 두지 않는다).
+- `operator<` override: 시작점 비교. avl_tree가 구간을 정렬·탐색하는 근거.
+- `touches`/`merge`: **Interval 고유 메서드**(Data 베이스 가상함수 아님).
+  "닿으면 병합"(`[2,4)`+`[4,5)`→`[2,5)`, 경계가 만나면 합침)을 판정·계산한다.
+- **병합 조율은 reservation_table**이 한다. avl_tree는 `touches`/`merge`를
+  *모른다* — 정렬·이웃 접근(predecessor/successor)·삭제·재삽입만 제공하고,
+  reservation_table이 그 위에서 이웃을 흡수하는 병합 로직을 구현한다.
+  (병합은 새 구간이 좌·우 이웃과 닿으면 셋 이상이 하나로 합쳐질 수 있다.)
+- reservation table 전체는 2층: 바깥은 노드 인덱스 `dynamic_array`, 각 칸이
+  그 노드의 Interval들을 담은 `avl_tree`. 상세는 reservation_table 가지에서.
+
 ## 소유권
 
 모든 컨테이너(`avl_tree_node`, `linked_list_node`, `dynamic_array`, 그리고

@@ -13,7 +13,7 @@
 // 아는 것: head/tail/size, 노드를 엮고 끊는 법.
 // 하지 않는 것: 담은 Data* 의 의미·순서 규율 해석(queue가 함),
 //   Data* 의 수명 책임(비소유).
-// 설계 근거: L3_modules/data_structure/linked_list.md
+// 설계 근거: L3_interface/data_structure/linked_list.md
 class LinkedList {
 public:
     // Constructor - empty list: head=tail=nullptr, size=0

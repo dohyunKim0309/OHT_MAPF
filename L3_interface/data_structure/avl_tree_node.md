@@ -1,6 +1,6 @@
 ---
 layer: L3
-tags: [modules, ds, building_block]
+tags: [interface, ds, building_block]
 ---
 
 # AvlTreeNode (avl_tree의 빌딩 블록)

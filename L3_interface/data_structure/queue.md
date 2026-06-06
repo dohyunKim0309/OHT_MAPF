@@ -1,6 +1,6 @@
 ---
 layer: L3
-tags: [modules, ds]
+tags: [interface, ds]
 ---
 
 # queue (FIFO)

@@ -136,6 +136,6 @@ top level(시뮬레이션 + throughput 측정) → high level(PP) → algorithm 
 ## 하위 층 인덱스
 
 - [[L2_structure/folder_structure_and_responsibilities]]
-- [[L3_modules]] (모듈별 설계)
-- [[L4_functions]] (함수 설계)
+- [[L3_interface]] (구성요소별 계약)
+- [[L4_mechanism]] (연산별 기전)
 - [[work_log]] (작업 기록)

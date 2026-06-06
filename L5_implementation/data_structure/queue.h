@@ -13,7 +13,7 @@
 // 아는 것: FIFO 규율, enqueue=뒤(pushBack)·dequeue=앞(popFront) 매핑.
 // 하지 않는 것: 노드를 직접 엮고 끊기(LinkedList가 함), 담은 Data* 의
 //   의미 해석, Data* 의 수명 책임(비소유).
-// 설계 근거: L3_modules/data_structure/queue.md
+// 설계 근거: L3_interface/data_structure/queue.md
 class Queue : private LinkedList{
 public:
     // add (use linked list - pushBack)

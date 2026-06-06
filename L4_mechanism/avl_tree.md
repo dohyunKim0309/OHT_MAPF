@@ -1,6 +1,6 @@
 ---
 layer: L4
-tags: [functions, ds]
+tags: [mechanism, ds]
 ---
 
 # AVL Tree — 함수 명세 (L4)

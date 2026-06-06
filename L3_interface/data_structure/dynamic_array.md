@@ -1,6 +1,6 @@
 ---
 layer: L3
-tags: [modules, ds, building_block]
+tags: [interface, ds, building_block]
 ---
 # dynamic_array (자체 자료구조 및 min_heap, graph, queue의 빌딩 블록)
 

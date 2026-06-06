@@ -9,7 +9,7 @@
 
 // DynamicArray: Data* 를 연속 메모리에 저장하는 동적 배열.
 // 인덱스 기반 임의 접근과 끝에서의 추가를 제공하고, 용량이 차면 스스로 확장. 저장한 Data* 는 비소유 — delete 하지 않는다.
-// 설계 근거: L3_modules/data_structure/dynamic_array.md
+// 설계 근거: L3_interface/data_structure/dynamic_array.md
 class DynamicArray {
 public:
     // 초기 용량으로 버퍼 할당

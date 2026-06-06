@@ -6,7 +6,7 @@
 // 이 파일은 두 빌딩 블록 노드를 함께 둔다 (개념은 분리, 파일은 하나):
 //  - AvlTreeNode  : avl_tree의 뼈대 (좌/우 자식 + 높이)
 //  - LinkedListNode : linked_list의 뼈대 (next 하나)
-// 설계 근거: L3_modules/data_structure/avl_tree_node.md, linked_list_node.md
+// 설계 근거: L3_interface/data_structure/avl_tree_node.md, linked_list_node.md
 
 // ── AvlTreeNode ─────────────────────────────────────────────────────────
 // 아는 것: 담은 Data* 하나, 좌/우 자식, 자기 높이.
