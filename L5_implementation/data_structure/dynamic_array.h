@@ -27,6 +27,9 @@ public:
     // 끝에 Data 추가, 가득 차면 용량 확장 O(1)
     void pushBack(Data* elem);
 
+    // 끝 Data 제거 후 반환. O(1). 빈 배열 호출은 계약 위반(assert).
+    Data* popBack();
+
     // 현재 저장된 개수
     int getSize() const;
 

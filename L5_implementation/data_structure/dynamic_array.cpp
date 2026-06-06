@@ -39,6 +39,14 @@ void DynamicArray::pushBack(Data *elem) {
     ++size;
 }
 
+// remove and return the last Data*. O(1).
+// calling on empty array is a contract violation (assert).
+Data* DynamicArray::popBack() {
+    assert(size > 0 && "DynamicArray::popBack on empty array");
+    --size;
+    return buffer[size];   // element is non-owning: just hand it back, don't delete
+}
+
 // size up by 2x
 void DynamicArray::sizeUp() {
     int newCapacity = capacity * 2;

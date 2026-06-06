@@ -15,4 +15,6 @@ add_executable(OHT_MAPF L5_implementation/main.cpp
         L5_implementation/data_structure/queue.cpp
         L5_implementation/data_structure/queue.h
         L5_implementation/data_structure/avl_tree.cpp
-        L5_implementation/data_structure/avl_tree.h)
+        L5_implementation/data_structure/avl_tree.h
+        L5_implementation/data_structure/min_heap.cpp
+        L5_implementation/data_structure/min_heap.h)

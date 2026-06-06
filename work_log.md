@@ -29,9 +29,6 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
 - 〔메타〕 빌딩 블록 명명 모순 — [[data_structure_dependency_map]]은 `tree_node`,
   [[folder_structure_and_responsibilities]]는 `avl_tree_node`. 같은 부품을 두 이름으로
   부른다. 정보 모순. (2026-06-06 발견)
-- 〔도메인〕 AVL 중복 키 삽입 정책 미정 — 같은 키일 때 거부/덮어쓰기/중복허용 중
-  무엇인지가 사용처 [[reservation_table]]의 Interval 키 설계에 종속. [[L4_mechanism/avl_tree]]는
-  잠정으로 오른쪽 삽입. 정보 부족. (2026-06-06 발견)
 - 〔메타〕 계약↔기전 축 적용 후속 — L3 계약 문서에 남은 *상세 기전*을 L4로 재단해야.
   [[avl_tree]]의 회전 단계 설명(ASCII·이미지)이 대표 사례. (2026-06-06 발견)
 

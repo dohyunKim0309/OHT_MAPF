@@ -34,6 +34,7 @@ tags: [interface, ds, building_block]
  - `Data* get(int index) const` — 인덱스 접근.
  - `void set(int index, Data* elem)` — 인덱스 위치 덮어쓰기.
  - `void pushBack(Data* elem)` — 끝에 추가. 가득 차면 용량 확장.
+ - `Data* popBack()` — 끝 원소 제거 후 반환. 빈 배열 호출은 계약 위반(assert).
  - `int getSize() const` — 현재 크기.
 
 **용량 확장**: `size == capacity`에서 추가 시 버퍼를 더 큰 것(보통 2배)으로
