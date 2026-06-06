@@ -12,6 +12,11 @@ Writes (into data/):
     node_map.csv  : "idx,ENCODED_ID"
 
 Weight conversion: int_weight = max(1, round(distance / V)).
+
+Here `V` is the per-step travel distance V*dt (agent speed V times the discrete
+time-step length dt) -- the distance an agent covers in one step, which is also the
+minimum separation agents must keep. An edge of physical length `distance` therefore
+spans `round(distance / (V*dt))` steps. We expose it as the single constant `V`.
 """
 import argparse
 import csv

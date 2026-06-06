@@ -226,3 +226,25 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
   (역방향쌍 0 검증)이라 노드 conflict만 처리 — 이것이 구현 대상. ③ 의존성 그래프 도식
   (Data→빌딩블록→자료구조 3계층, Typst 네이티브, 영어). ④ TEG 필요성(단일 최적≠다중
   충돌회피) 서술. ⑤ 메타 발언 제거. References 절 추가. 11쪽.
+
+### 2026-06-07
+
+- **결정 〔도메인〕** 속도×시간 표기를 **V·Δt로 통일**(인간) — V는 양자화 상수가 아니라
+  *한 스텝 이동거리(=속도 V × 이산간격 Δt)*이자 에이전트 최소 분리거리. 보고서의 수식·
+  서술·표 헤더를 전부 V·Δt로 통일(혼용·"Δt=1이라 V" 문장 제거). 코드 측은 변수명 `V`
+  유지하되 `data_preprocessor.py` 독스트링에 "V = per-step 이동거리 V·Δt" 의미 명시.
+- **결정 〔도메인/메타〕** Path를 Data에서 **상속하지 않기로**(인간). 검토: `Data`는
+  컨테이너(avl_tree·min_heap·dynamic_array)에 담겨 `operator<`로 비교되는 "한 칸"인데,
+  Path는 어떤 컨테이너에도 담기지 않고(planRound가 `Path[]`를 직접 다룸) 비교도 없음 →
+  Data 역할과 불일치. Agent·Interval과 달리 담길 곳이 없어 상속의 실익이 없음. "모든
+  객체는 Data" 원칙의 경계 사례로, 컨테이너 원소가 아닌 값 타입은 예외로 둠. 현 int[]
+  RAII 유지.
+- **기록 〔메타〕** 인간이 `planner/planner.{cpp,h}` → `pathfinding.{cpp,h}` 리네임
+  (Path·PathFinder가 사는 파일). CMakeLists·prioritized_planning.h include 반영됨.
+- **결정 〔메타〕** L3 도메인 폴더의 `README.md`를 **폴더 이름과 같은 파일명**으로 리네임
+  (인간) — `planner/README.md`→`planner.md`, `environment/README.md`→`environment.md`,
+  `reservation_table/README.md`→`reservation_table.md`. 기존 본문은 이미 무자격 위키링크
+  `[[planner]]`/`[[environment]]`/`[[reservation_table]]`를 쓰고 있었고, README는
+  Obsidian에서 폴더마다 동명이라 링크가 모호 → 리네임으로 비로소 정확히 풀린다. 명명 규칙
+  (folder_structure #명명 규칙)의 "폴더 대표 문서=README.md"를 "=<폴더이름>.md"로 갱신.
+  `environment.md`는 L4와 basename 충돌하나 기존 규칙(무자격=L3, L4는 경로 명시)으로 해소.

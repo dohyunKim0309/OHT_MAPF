@@ -2,7 +2,7 @@
 // Created by DohyunKim on 26. 6. 6..
 //
 
-#include "planner.h"
+#include "pathfinding.h"
 
 #include <cassert>
 

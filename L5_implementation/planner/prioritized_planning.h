@@ -5,7 +5,7 @@
 #ifndef OHT_MAPF_PRIORITIZED_PLANNING_H
 #define OHT_MAPF_PRIORITIZED_PLANNING_H
 
-#include "planner.h"
+#include "pathfinding.h"
 #include "reservation_table/reservation_table.h"
 #include "../data_structure/graph.h"
 #include "../environment/agent.h"

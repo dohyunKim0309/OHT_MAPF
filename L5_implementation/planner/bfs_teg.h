@@ -5,7 +5,7 @@
 #ifndef OHT_MAPF_BFS_TEG_H
 #define OHT_MAPF_BFS_TEG_H
 
-#include "planner.h"
+#include "pathfinding.h"
 
 // BfsTeg: single-agent time-constrained shortest path via a Time-Expanded
 // Graph + plain BFS.
