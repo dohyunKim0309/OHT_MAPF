@@ -10,7 +10,8 @@ tags: [purpose]
 시뮬레이터. 두 가지 single-agent path planning 알고리즘을 PP(Prioritized
 Planning) 프레임워크 안에서 자료구조 관점으로 비교한다.
 
-- **베이스라인**: Dijkstra + Time-Expanded Graph (TEG)
+- **베이스라인**: BFS + Time-Expanded Graph (TEG). reservation을 TEG 빌드 시
+  점유 정점 제거로 흡수하고, unweighted라 BFS로 시간 제약 최단경로를 푼다.
 - **비교 대상**: Parallel ϕ Bellman-Ford (그래프 복제 없이 시간 제약 처리)
 
 ---
@@ -19,28 +20,54 @@ Planning) 프레임워크 안에서 자료구조 관점으로 비교한다.
 
 **자료구조 관점:** MAPF는 다양한 자료구조의 자연스러운 사용처를 제공한다.
 시간 제약을 가진 점유 정보(AVL Tree), 우선순위 기반 처리(Min Heap), 관계 기반
-layout 표현(Graph), 경로 복원(Stack), 라운드 기반 전파(Queue) — 수업에서
-다룬 여러 자료구조가 명확한 역할 분담으로 함께 사용된다.
+layout 표현(Graph), FIFO 전파(Queue ← Linked List) — 수업에서 다룬 여러
+자료구조가 명확한 역할 분담으로 함께 사용된다. 어떤 자료구조가 *왜 이 문제에
+맞지 않는가*도 분석 대상이다 — 정적 layout·고정 N 특성상 LIFO(stack)를
+배제한 근거가 그 예다.
 
-**알고리즘 비교의 의미:** 두 알고리즘은 동일한 문제를 *자료구조 설계 선택의
-차이*로 푼다. Dijkstra+TEG는 그래프를 시간으로 확장하여 V·T 공간을 사용하고,
-ϕ Bellman-Ford는 그래프 복제 대신 노드별 점유 정보를 별도 자료구조로 관리한다.
-자료구조 선택이 알고리즘의 시공간 특성을 어떻게 결정하는지가 직접 드러난다.
+**알고리즘 비교의 의미:** 두 알고리즘은 동일한 문제를 *자료구조 활용 방식의
+차이*로 푼다. BFS+TEG는 reservation을 그래프 구조에 구워넣는다 — 점유된
+(node,time) 정점을 TEG에서 제거하면 충돌 회피가 그래프에 박히고, unweighted라
+BFS로 풀린다(공간은 V·T). ϕ Bellman-Ford는 그래프를 복제하지 않고 같은
+reservation을 interval query(ϕ)로 런타임에 회피한다. 같은 reservation table을
+한쪽은 빌드 필터로, 한쪽은 런타임 질의로 쓰는 것 — 자료구조 활용이 알고리즘의
+시공간 특성을 어떻게 결정하는지가 직접 드러난다.
 
 ---
 
 ## 자료구조 사용 개요
 
-| 자료구조 | 사용처 | 선택 근거 (요약) |
-|---|---|---|
-| Graph (인접 리스트) | Layout 표현 | 희소 그래프 공간 효율, 이웃 순회 효율 |
-| AVL Tree | Reservation Table | 노드별 시간 구간의 균형 잡힌 삽입/조회 |
-| Min Heap | 에이전트 우선순위, Dijkstra open set | 최솟값 추출 효율 |
-| Stack | 경로 복원 | LIFO가 predecessor 역추적과 일치 |
-| Queue | Bellman-Ford 라운드 전파 | FIFO로 라운드 순서 보장 |
-| Linked List | 인접 리스트의 구성 요소 | 동적 크기, 삽입 효율 |
+자료구조는 두 단으로 조직된다 — Data를 담는 **빌딩 블록**과 그것을 조합한
+**자료구조**. 관계 전체는 [[data_structure_design]] 참조.
 
-상세 정당화는 [[L3_modules]]에서.
+**Data 컨테이너 및 빌딩 블록**
+
+| 구성 요소 | 역할 | 선택 근거 (요약) |
+|---|---|---|
+| Data | 타입 불문 객체 컨테이너 (담기는 한 칸) | 다형성으로 자료구조 코드를 타입마다 중복하지 않음 |
+| AVL Tree Node | avl_tree의 뼈대 부품 | left/right/height, 균형 트리 구성 |
+| Linked List Node | linked_list의 뼈대 부품 | Data*+next, 단일 연결 |
+| Dynamic Array | min_heap·graph의 뼈대 + 노드별 dist/predecessor 배열 | 연속 저장, 임의 접근 효율 |
+
+**자료구조**
+
+| 자료구조 | 빌딩 블록 | 사용처 | 선택 근거 (요약) |
+|---|---|---|---|
+| Graph (인접 리스트) | Dynamic Array | Layout 표현 (weighted 원본 + unweighted 확장본) | 희소 그래프 공간 효율, 이웃 순회 효율 |
+| AVL Tree | AVL Tree Node | Reservation Table | 노드별 시간 구간의 균형 잡힌 삽입/조회 |
+| Min Heap | Dynamic Array | PP의 에이전트 우선순위 큐 | 최솟값 추출 효율 |
+| Linked List | Linked List Node | queue의 뼈대 | head/tail 양끝 O(1) |
+| Queue | Linked List | BFS+TEG 탐색, ϕ-BF 라운드 전파 | FIFO로 레벨/라운드 순서 보장 |
+
+avl_tree reservation table은 두 알고리즘이 공유한다 — 노드별 사용 불가
+구간 `[a,b)`를 동일하게 저장하되, BFS+TEG는 TEG 빌드 시 점유 정점 제거
+필터로, ϕ-BF는 런타임 interval query(ϕ)로 *읽는 방식만* 달리한다. 이것이
+두 알고리즘을 자료구조 활용 차이로 비교하는 핵심 축이다.
+
+LIFO 구조(stack)는 채택하지 않는다. 경로 복원의 LIFO가 유일한 후보였으나,
+predecessor 배열의 역순 순회로 충분해 고유 사용처가 없다. (linked_list는
+queue의 양끝 O(1) 뼈대로 채택 — 중간 삽입은 없지만 queue 양끝 연산이 있다.)
+의존성·사용처·선정 근거 상세는 [[data_structure_design]]에서.
 
 ---
 
