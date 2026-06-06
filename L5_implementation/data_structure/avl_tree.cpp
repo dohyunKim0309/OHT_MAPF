@@ -34,6 +34,14 @@ Data* AvlTree::find(Data* key) const {
     return nullptr;
 }
 
+// Explicit opt-in: delete every stored Data* too, then reset to empty.
+// Normally the tree is non-owning; the caller calls this only when it owned
+// the stored Data* and wants the tree to do the bulk cleanup.
+void AvlTree::clearAndDelete() {
+    destroyAndDelete(root);
+    root = nullptr;   // reusable after clearing
+}
+
 // ── private: height helpers (access node->height via friendship) ──────────
 
 int AvlTree::height(AvlTreeNode* node) {
@@ -117,4 +125,13 @@ void AvlTree::destroy(AvlTreeNode* node) {
     destroy(node->getLeft());
     destroy(node->getRight());
     delete node;   // node only; the stored Data* is non-owning.
+}
+
+// Like destroy, but also deletes each stored Data* (caller-owned, opt-in).
+void AvlTree::destroyAndDelete(AvlTreeNode* node) {
+    if (node == nullptr) return;
+    destroyAndDelete(node->getLeft());
+    destroyAndDelete(node->getRight());
+    delete node->getData();   // the owned payload
+    delete node;              // then the node
 }

@@ -23,32 +23,35 @@ tags: [interface, ds]
 
 ## 구현 방식
 
-**뼈대**: [[dynamic_array]]. 힙을 연속 배열로 표현한다. **1-기반 인덱싱**을
+**뼈대**: [[dynamic_array]]를 **private 상속**해 구현한다
+(is-implemented-in-terms-of). 힙을 연속 배열로 표현하며 **1-기반 인덱싱**을
 쓴다(인덱스 0은 dummy로 비워둔다) — 부모/자식 식이 `2i`, `2i+1`, `i/2`로
 깔끔하고, 과제 코드(`2022142223_problem2.cpp`)·강의자료와 일치한다.
+private 상속이므로 dynamic_array의 public 연산(get/set/pushBack/popBack)은
+바깥에 노출되지 않는다 — 호출자가 배열을 직접 건드려 힙 불변식을 깨지
+못한다. push/pop만 공개한다.
 
-**public field**:
- - 없음.
-
-**private field**:
-- `DynamicArray arr` — 힙 배열. 인덱스 0은 dummy(미사용), 실제 원소는 1부터.
+**public field / private field**:
+ - 없음. 배열 상태(buffer/size/capacity)는 베이스 dynamic_array가 들고 있다.
 
 **methods**:
- - 생성자: 빈 힙. arr의 0번에 dummy(nullptr)를 넣어 1-기반을 맞춘다.
+ - 생성자: 베이스에 dummy(nullptr) 하나를 pushBack해 1-기반을 맞춘다.
  - `void push(Data* elem)` — 끝에 추가 후 부모와 비교하며 위로(sift-up).
    `operator<`로 자신이 부모보다 작으면 swap, 루트까지 반복. O(log n).
  - `Data* pop()` — 루트(최소)를 반환. 마지막 원소를 루트로 옮기고
-   (arr.popBack) 크기를 줄인 뒤, 더 작은 자식과 비교하며 아래로(sift-down).
+   (베이스 popBack) 크기를 줄인 뒤, 더 작은 자식과 비교하며 아래로(sift-down).
    빈 힙 호출은 계약 위반(assert). O(log n).
- - `int getSize() const` — 원소 개수(dummy 제외).
+ - `int getSize() const` — 원소 개수(dummy 제외 = 베이스 getSize − 1).
  - `bool isEmpty() const` — 원소가 없으면 true.
+ - (private) `less(a, b)` — `*a < *b`를 한 곳에 격리.
 
 **비교**: 두 원소 `a`, `b`의 우선순위는 `*a < *b`(`Data::operator<`)로
 판정한다. min_heap은 비교 로직을 모른 채 이 결과만 쓴다.
 
 **소유권**: 담은 `Data*`는 **비소유**. push/pop·소멸자 모두 `Data*`를
-delete 하지 않는다. pop은 그 `Data*`를 반환해 호출자에게 넘긴다. arr가
-뼈대이고 arr도 비소유다. 전체 정책은 [[data_structure_design#소유권]].
+delete 하지 않는다. pop은 그 `Data*`를 반환해 호출자에게 넘긴다. 베이스
+dynamic_array도 비소유라 buffer만 정리한다. 전체 정책은
+[[data_structure_design#소유권]].
 
 
 ## Time Complexity

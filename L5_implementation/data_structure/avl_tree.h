@@ -29,6 +29,12 @@ public:
     // O(log N).
     Data* find(Data* key) const;
 
+    // Empty the tree AND delete every stored Data*, then reset to empty.
+    // The tree is normally non-owning (~AvlTree frees only nodes); this is an
+    // explicit opt-in for a caller that DID own the stored Data* and wants the
+    // tree to do the bulk cleanup work. The caller decides when to call it.
+    void clearAndDelete();
+
 private:
     AvlTreeNode* root;
 
@@ -42,7 +48,8 @@ private:
     static AvlTreeNode* rebalance(AvlTreeNode* node);    // picks and applies rotation
 
     static AvlTreeNode* insert(AvlTreeNode* node, Data* elem);  // recursive insert
-    static void destroy(AvlTreeNode* node);                     // post-order free
+    static void destroy(AvlTreeNode* node);                     // post-order free (nodes only)
+    static void destroyAndDelete(AvlTreeNode* node);            // post-order free + delete Data*
 };
 
 #endif //OHT_MAPF_AVL_TREE_H

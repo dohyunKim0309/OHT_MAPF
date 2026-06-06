@@ -24,13 +24,17 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
 - 〔메타〕 `L0_methodology/`의 `L1.md`/`L2.md` 명명이 ① L2 명명 규칙
   (`_<숫자>_<이름>.md`)과 ② 프로젝트 층 이름(`L1_purpose` 등)과 토큰 충돌. `[[L1]]`의
   지시 대상이 모호. (2026-06-06 발견)
-- 〔메타〕 `L5_implementation/CLAUDE.md` 부재 — [[claude_md_index]]가 임베드로 참조하나
-  실재하지 않음. (2026-06-06 발견)
 - 〔메타〕 빌딩 블록 명명 모순 — [[data_structure_dependency_map]]은 `tree_node`,
   [[folder_structure_and_responsibilities]]는 `avl_tree_node`. 같은 부품을 두 이름으로
   부른다. 정보 모순. (2026-06-06 발견)
 - 〔메타〕 계약↔기전 축 적용 후속 — L3 계약 문서에 남은 *상세 기전*을 L4로 재단해야.
   [[avl_tree]]의 회전 단계 설명(ASCII·이미지)이 대표 사례. (2026-06-06 발견)
+- 〔도메인〕 graph unweighted 통일 후속 정합 — graph가 weight 없이 통일되며 ϕ-BF도
+  weighted 원본이 아닌 **unweighted 확장본**을 쓰게 됨. 그러나 [[data_structure_design]]
+  (graph "두 형태 보유", ϕ-BF "weighted 원본", 사용처 표·비교 축), [[L1_purpose/README]],
+  [[work_log]] 이전 기록은 아직 "ϕ-BF=weighted / BFS+TEG=확장본"의 옛 서술. 새 모델은
+  *둘 다 같은 확장본 공유*, 차이는 "TEG 시간확장(BFS) vs 확장본 위 ϕ 시간회피(ϕ-BF)".
+  정보 모순 — 위 문서들 일괄 갱신 필요. (2026-06-06 발견, 갱신 보류)
 
 ## 기록
 
@@ -81,3 +85,42 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
   코드 단위 단어라 추상화 축과 어긋났던 것 → L3=각 구성요소의 계약(표면), L4=각 연산의
   기전(내부). 폴더 `L3_modules→L3_interface`·`L4_functions→L4_mechanism` rename, 전 참조
   경로·링크·태그 일괄 치환, folder_structure·CLAUDE.md·README의 레이어 정의를 새 어휘로 갱신.
+- **결정 〔도메인〕** `L5_implementation/data_structure/avl_tree.{h,cpp}` 작성 —
+  [[L4_mechanism/avl_tree]] 명세대로 `AvlTree` 클래스(스텁의 소문자 `avl_tree`는 node.h의
+  `friend class AvlTree`와 불일치라 바로잡음). insert/find + 회전 기계, 높이 규약
+  leaf=1/NULL=0. 검증: `g++ -Wall -Wextra` 무경고 + 기능 테스트 통과(N=1000 정렬 삽입 +
+  LL/RR/LR/RL + 중복 거부 스모크).
+- **기록 〔도메인〕** reservation_table 구조 확정(인간) — 그래프 정점 수만큼 길이의 dynamic
+  array, 각 칸에 `AvlTree*`(정점별 시간 구간 Interval 저장). [[avl_tree]] 사용처 구체화.
+  reservation_table L3 문서 생기면 이관.
+- **결정 〔도메인〕** AVL 중복 키 정책 = **거부**(같은 키는 애초에 삽입 안 함, 인간 결정).
+  [[#미해결]]에서 항목 제거. [[L4_mechanism/avl_tree]] insert 의사코드·사후조건 및 L5
+  `insert` else 분기를 no-op(`return node`)로 갱신.
+- **결정 〔메타〕** L5 코드 주석은 **영어**로(인간). [[avl_tree]] 코드 주석을 영어로 전환.
+  컨벤션은 `L5_implementation/CLAUDE.md`(부재, [[#미해결]]) 생기면 명문화. 기존 한글 주석
+  파일(data/node/linked_list 등)은 추후 일괄 전환 여지.
+- **결정 〔메타〕** `L5_implementation/CLAUDE.md` 신설 — "코드 주석은 영어로" 명문화 +
+  관측된 코딩 컨벤션(명명·헤더가드·비소유·assert·빌드) 정리. [[#미해결]]의 부재 항목 해소,
+  [[claude_md_index]]의 임베드가 이제 해석된다.
+- **기록 〔도메인〕** reservation_table 방향(인간) — 점유 에이전트 정보는 MAPF 디버깅에
+  유용하나 과제 버전에선 무시하고 키를 유일 취급. 한 정점 내 **시간 구간 병합**(인접/중첩
+  Interval 머지)을 진행 예정. reservation_table 설계 시 구체화.
+- **발견 〔도메인〕** 실제 데이터 확보 — 삼성전자 협업 연구(PLOS One, jja8989/visualization
+  -for-OHT-network repo)의 **SMAT 2022 OHT 네트워크**. 노드 2,858 / 엣지 3,424, 순수
+  단방향(self-loop·역방향쌍·중복 0 검증). L1의 단방향 가정을 실데이터가 뒷받침. directed라
+  edge swap 충돌 원천 부재 → 노드 점유 충돌만 처리. `data/` + 전처리 스크립트·문서.
+- **결정 〔도메인〕** 모델 정립(인간) — **V = 에이전트 속도**(한 스텝당 거리, 양자화 상수가
+  아님). `weight = round(거리/V)` = 간선 통과 타임스텝 수. 에이전트는 매 스텝 V로 이동 또는
+  0(대기). **충돌 제약 = 최소거리 V·Δt**. 간선을 가상노드로 펼치면(unweighted 확장) 이
+  거리 제약이 "(node,time) 점유 충돌"로 통일됨 — 확장본을 만든 근본 이유.
+- **결정 〔도메인〕** V=500, H(horizon)=28 채택(인간). maxW=28=H → 전 간선이 horizon 안에
+  통과. 확장본 21,178노드. **오차는 두 종류**: 간선별 7.1%(최대 20%)이나, 경로는 간선합이라
+  올림/내림 상쇄돼 **경로 오차 3.6%**(랜덤 200쌍 측정). MAPF는 경로시간을 쓰므로 경로오차가
+  진짜 척도. 1순위 "전체 그래프 계산 가능", 오차는 수용. data_preprocessor에 2단계(확장)
+  추가, 기본 V=500, edges_expanded.txt 출력. PREPROCESSING.md 갱신.
+- **발견/막힘 〔도메인〕** TEG 규모 — 명시적 TEG = 확장본 × T. V=50 확장본 22만, V=500은
+  2.1만으로 완화되나 T를 곱하면 여전히 큼. **그러나 horizon H=28 제한 시** BFS는 시작점
+  H-hop 반경(수천 정점)만 방문 → 한 에이전트 탐색은 가벼움(확장본 전체크기 무관). 반면
+  ϕ-BF는 확장본 없이 원본 V·E(~980만)만 → 더 쌈. **"실 fab 규모에서 명시적 TEG는
+  ϕ-BF보다 무겁다"가 L1 비교 가설을 정량 입증** — 보고서 핵심 결과 후보. 갱신 위치:
+  planner 가지(TEG 물질화 전략), L1 비교 서술.
