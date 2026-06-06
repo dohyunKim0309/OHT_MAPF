@@ -8,8 +8,10 @@
 
 // ── Graph ───────────────────────────────────────────────────────────────
 
-Graph::Graph(int n) : n(n) {
+Graph::Graph(int n, int originalCount) : n(n) {
     assert(n >= 0 && "Graph: vertex count must be non-negative");
+    this->originalCount = (originalCount < 0) ? n : originalCount;
+    assert(this->originalCount <= n && "Graph: originalCount exceeds n");
     deg = new int[n];
     cap = new int[n];
     adj = new int*[n];
@@ -64,6 +66,14 @@ int Graph::neighbor(int v, int i) const {
 
 int Graph::size() const {
     return n;
+}
+
+int Graph::originalSize() const {
+    return originalCount;
+}
+
+bool Graph::isOriginal(int v) const {
+    return v >= 0 && v < originalCount;
 }
 
 // ── TimeExpandedGraph ───────────────────────────────────────────────────

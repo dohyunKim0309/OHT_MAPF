@@ -11,9 +11,9 @@ tags: [interface, domain, environment]
 
 ## 책임
 시뮬레이션 세계를 보유하고 시간을 진행시킨다. layout과 에이전트들을 들고,
-**에이전트에게 새 목표가 생긴 순간** planner에게 그 에이전트의 경로 전체를
-받아, 받은 경로를 따라 에이전트를 움직이며 throughput을 측정한다. 세계를
-그리는 visualizer를 포함한다.
+**매 라운드(C스텝)마다** PP에게 전체 에이전트의 H스텝 계획을 받아, 그중 앞
+C스텝을 실행하며 throughput을 측정한다(receding horizon). 세계를 그리는
+visualizer를 포함한다.
 
 **아는 것:**
 - layout([[graph]])과 전체 에이전트 집합(고정 N), 현재 시각.
@@ -46,34 +46,68 @@ tags: [interface, domain, environment]
 - `operator<` override: `priority` 비교. PP의 min_heap이 이걸로 우선순위 추출.
 - 소유: environment. min_heap은 비소유로 Agent*를 빌린다.
 
+## Environment 인터페이스
+
+세계를 보유하고 시뮬레이션을 돌리는 최상위 객체.
+
+```
+class Environment {
+    Environment(const Graph& graph, int agentCount, PrioritizedPlanning* pp,
+                int H, int C);
+    void step();        // 한 라운드: PP로 계획 → 각 에이전트 C스텝 전진 →
+                        //   목표 도달 처리(카운트++·새 목표) → 시각 += C
+    void run(int rounds);    // step()을 rounds회
+    double throughput() const; // 누적 도달 수 / 경과 시각 (실수)
+    int  arrivedCount() const; // 누적 도달 수 (관측용)
+    int  elapsed() const;      // 경과 시각 (관측용)
+    void render() const;     // visualizer: 세계 상태 출력
+};
+```
+
+- **보유**: Agent 배열(소유), [[graph]](빌림), [[planner|PrioritizedPlanning]]*
+  (빌림), 현재 시각, 누적 도달 카운트, 파라미터 H(계획 지평)·C(commit 스텝).
+- **step 한 번** = 한 라운드. PP에게 H스텝 계획을 받아 앞 C스텝만 실행.
+- 새 목표: 도달 시 원본 범위 `[0, graph.originalSize())`에서 랜덤.
+
+## 시뮬레이션 모델 — Receding Horizon
+
+두 파라미터로 "멀리 계획, 조금 실행, 자주 재계획"한다:
+- **H (계획 지평, planning horizon)**: 한 번 계획할 때 내다보는 타임스텝 수
+  (예: 100). 멀리 봐서 좋은 경로를 찾는다.
+- **C (실행 스텝, commit length)**: 계획한 경로 중 **앞 C스텝만 실제 실행**한 뒤
+  재계획한다 (예: 10~20). C < H면 receding, C = H면 한 번에 다 실행.
+
+H를 크게 두어 장기 계획이 가능하고, C로 자주 갱신해 동적 상황(도달·새 목표)에
+적응한다.
+
 ## 인터페이스 (environment ↔ planner)
 
-- **호출 시점**: 에이전트가 **새 목표를 받은 순간에만** planner를 부른다.
-  이동 중(경로 실행 중)에는 부르지 않는다.
-- **요청/응답**: planner에게 (그 에이전트의 현재 위치·목표, graph, reservation)을
-  넘기면, planner는 **경로 전체**(시각순 노드 시퀀스, horizon 내)를 반환한다.
-- environment는 반환된 경로를 보관하고, 매 스텝 그 경로의 다음 위치로 에이전트를
-  옮긴다.
+- **호출 시점**: **매 라운드**(C스텝마다) PP에게 전체 에이전트의 계획을 요청한다.
+- **요청/응답**: PP는 현재 모든 에이전트 위치·목표로 우선순위 순 계획을 돌려,
+  각 에이전트의 **H스텝 경로**를 반환한다(시각순 노드 배열, 길이 H+1).
+- environment는 각 경로의 **앞 C스텝만 실행**하고, 다음 라운드에 다시 요청한다.
 
-## 시뮬레이션 흐름
+## 시뮬레이션 흐름 (한 라운드)
 
-1. 각 에이전트는 자기 경로를 **끝까지 실행**한다(매 스텝 다음 노드로).
-2. **목표 도달** 시: 도달 카운트를 올리고, 그 에이전트는 **해당 horizon 끝까지
-   정지**한다(현재 위치 유지).
-3. horizon이 끝나면(또는 정지가 풀리면): 새 목표를 할당받고, planner를 다시
-   불러 새 경로를 받아 이동을 재개한다.
-4. throughput = 누적 도달 카운트 / 경과 시각.
+1. PP에게 현재 상태로 전체 계획을 요청 → 각 에이전트의 H스텝 경로 수신.
+2. 각 에이전트를 그 경로대로 **C스텝 전진**시킨다.
+3. C스텝 동안 **목표 도달**한 에이전트: 도달 카운트++ , **랜덤 새 목표** 부여
+   (원본 범위 `[0, originalSize())`에서). 다음 라운드 계획에 새 목표 반영.
+4. 라운드 종료. reservation은 라운드 단위로 비우고 다음 라운드에 다시 쌓는다.
+5. throughput = 누적 도달 카운트 / 경과 시각.
 
-> 한 에이전트의 경로가 reservation에 기록되어야 다음 에이전트(낮은 우선순위)가
-> 그것을 피한다. PP의 우선순위 순서·reservation 기록은 planner의 일이다.
+> 한 라운드 안에서 높은 우선순위 에이전트의 H스텝 경로가 reservation에 먼저
+> 기록되고, 낮은 우선순위가 그것을 피한다. 우선순위 순서·기록은 PP의 일.
 
 ## 하위 구성요소
 - visualizer — environment에 포함. 세계 상태(에이전트 위치)를 그림으로. 별도
   문서 여부는 구현 시 결정.
 
 ## 미결
-- planner 인터페이스의 정확한 시그니처(경로 반환 형식: 노드 배열? (node,time)
-  배열?) — planner 가지에서 확정.
-- 새 목표 생성 방식(랜덤 노드, 도달 가능성 보장 여부).
-- 여러 에이전트의 호출 순서가 PP 우선순위와 어떻게 맞물리는지 — planner와 함께.
+- 새 목표 도달 가능성 — 원본 범위 `[0, originalSize())`에서 랜덤으로 뽑되
+  (가상노드 제외), 강연결이 아니면 도달 불가 목표가 나올 수 있음. 강연결 검증은
+  추후. planner 실패 시 재추첨 등 처리 필요.
 - visualizer 출력 형식(텍스트/그래픽).
+
+(해소: 경로 반환 = 길이 H 노드 배열. 새 목표 = 원본 범위 랜덤. PP 우선순위
+호출 순서는 [[planner]] PP 흐름에 확정.)

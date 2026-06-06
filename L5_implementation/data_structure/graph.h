@@ -15,8 +15,11 @@
 // Design: L3_interface/data_structure/graph.md
 class Graph {
 public:
-    // n vertices, no edges.
-    explicit Graph(int n);
+    // n vertices total, no edges. originalCount = number of original (non-virtual)
+    // nodes; indices [0, originalCount) are original, [originalCount, n) are
+    // virtual nodes inserted by the unweighted expansion. Default originalCount
+    // = n (no virtual nodes), e.g. for a TimeExpandedGraph.
+    explicit Graph(int n, int originalCount = -1);
 
     // Release adjacency storage.
     virtual ~Graph();
@@ -30,14 +33,22 @@ public:
     // The i-th outgoing neighbor of vertex v (0 <= i < degree(v)).
     int neighbor(int v, int i) const;
 
-    // Number of vertices.
+    // Number of vertices (original + virtual).
     int size() const;
 
+    // Number of original nodes. New goals are drawn from [0, originalSize());
+    // virtual nodes (edge midpoints) cannot be goals.
+    int originalSize() const;
+
+    // Is v an original (non-virtual) node?
+    bool isOriginal(int v) const;
+
 protected:
-    int n;            // number of vertices
-    int* deg;         // deg[v] = current out-degree of v
-    int* cap;         // cap[v] = capacity of adj[v]
-    int** adj;        // adj[v] = array of neighbor indices (length deg[v])
+    int n;             // number of vertices
+    int originalCount; // first originalCount indices are original nodes
+    int* deg;          // deg[v] = current out-degree of v
+    int* cap;          // cap[v] = capacity of adj[v]
+    int** adj;         // adj[v] = array of neighbor indices (length deg[v])
 
 private:
     // Grow adj[v] (double its capacity) when full.

@@ -19,4 +19,16 @@ add_executable(OHT_MAPF L5_implementation/main.cpp
         L5_implementation/data_structure/min_heap.cpp
         L5_implementation/data_structure/min_heap.h
         L5_implementation/data_structure/graph.cpp
-        L5_implementation/data_structure/graph.h)
+        L5_implementation/data_structure/graph.h
+        L5_implementation/planner/planner.cpp
+        L5_implementation/planner/planner.h
+        L5_implementation/planner/bfs_teg.cpp
+        L5_implementation/planner/bfs_teg.h
+        L5_implementation/planner/reservation_table/reservation_table.cpp
+        L5_implementation/planner/reservation_table/reservation_table.h
+        L5_implementation/planner/prioritized_planning.cpp
+        L5_implementation/planner/prioritized_planning.h
+        L5_implementation/environment/agent.cpp
+        L5_implementation/environment/agent.h
+        L5_implementation/environment/environment.cpp
+        L5_implementation/environment/environment.h)

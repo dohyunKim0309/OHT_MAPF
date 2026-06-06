@@ -1,18 +1,112 @@
+//
+// OHT_MAPF — receding-horizon prioritized planning on a real OHT layout.
+// Loads the SMAT 2022 semiconductor-fab OHT network (unweighted expanded form),
+// runs the Environment with BfsTeg as the single-agent path finder, and reports
+// throughput. See L3_interface/domain/{environment,planner} and L4_mechanism/*.
+//
+
+#include "environment/environment.h"
+#include "planner/prioritized_planning.h"
+#include "planner/bfs_teg.h"
+#include "data_structure/graph.h"
+
+#include <chrono>
+#include <cstdlib>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <string>
 
-// TIP 코드를 <b>Run</b>하려면 <shortcut actionId="Run"/>을(를) 누르거나 여백에서 <icon src="AllIcons.Actions.Execute"/> 아이콘을 클릭하세요.
-
-int main() {
-    // TIP <b>lang</b> 변수 이름에 캐럿이 있을 때 <shortcut actionId="RenameElement"/>을(를) 누르면 CLion에서 이름을 변경하는 방법이 표시됩니다.
-
-    const auto lang = "C++";
-    std::cout << "Hello and welcome to " << lang << "!\n";
-
-    for (int i = 1; i <= 5; i++) {
-        // TIP 코드 디버그를 시작하려면 <shortcut actionId="Debug"/>을(를) 누르세요. <icon src="AllIcons.Debugger.Db_set_breakpoint"/> 중단점 하나가 자동으로 설정되었습니다. <shortcut actionId="ToggleLineBreakpoint"/>을(를) 누르면 언제든지 중단점을 추가할 수 있습니다.
-        std::cout << "i = " << i << std::endl;
+// Try to open `path` directly, then from a few parent directories. CLion runs
+// the binary from cmake-build-debug/, so the project-root-relative "data/..."
+// path is not found unless we also look one or two levels up.
+static std::ifstream openLayout(const std::string& path, std::string& usedPath) {
+    const std::string prefixes[] = {"", "../", "../../", "../../../"};
+    for (const std::string& p : prefixes) {
+        std::string candidate = p + path;
+        std::ifstream in(candidate);
+        if (in) { usedPath = candidate; return in; }
     }
+    return std::ifstream();   // not found: caller checks
+}
 
+// Load the unweighted expanded layout from data/edges_expanded.txt.
+// File format: first line "N M" (vertices, edges), then M lines "from to"
+// (0-indexed). Original nodes are [0, originalCount); virtual nodes follow.
+static Graph* loadExpandedGraph(const std::string& path, int originalCount) {
+    std::string usedPath;
+    std::ifstream in = openLayout(path, usedPath);
+    if (!in) {
+        std::cerr << "ERROR: cannot open " << path
+                  << " (also tried ../, ../../). Run from the project root or"
+                  << " pass the path as the first argument.\n";
+        return nullptr;
+    }
+    int n, m;
+    in >> n >> m;
+    Graph* g = new Graph(n, originalCount);
+    for (int e = 0; e < m; ++e) {
+        int from, to;
+        in >> from >> to;
+        g->addEdge(from, to);
+    }
+    return g;
+}
+
+int main(int argc, char** argv) {
+    using clock = std::chrono::steady_clock;
+
+    std::srand(7);   // fixed seed: reproducible random start/goal placement
+
+    // ── Configuration ───────────────────────────────────────────────────────
+    const char* algorithm   = "BFS + Time-Expanded Graph";
+    const int   originalNodes = 2858;            // SMAT 2022 original OHT nodes
+    const std::string layoutPath =
+        (argc > 1) ? argv[1] : "data/edges_expanded.txt";
+    // Light defaults so a no-argument run from the IDE finishes in a few seconds.
+    // Pass arguments for heavier experiments, e.g.:  OHT_MAPF <layout> 40 500 50 10
+    const int   agents = (argc > 2) ? std::atoi(argv[2]) : 50;
+    const int   H      = (argc > 3) ? std::atoi(argv[3]) : 1000;  // planning horizon
+    const int   C      = (argc > 4) ? std::atoi(argv[4]) : 200;   // commit length
+    const int   rounds = (argc > 5) ? std::atoi(argv[5]) : 5;    // simulation rounds
+
+    Graph* g = loadExpandedGraph(layoutPath, originalNodes);
+    if (!g) return 1;
+
+    BfsTeg finder;
+    PrioritizedPlanning pp(&finder, *g, g->size());
+    Environment env(*g, agents, &pp, H, C);
+
+    // ── Banner ──────────────────────────────────────────────────────────────
+    std::cout << "==================================================\n";
+    std::cout << "  OHT_MAPF  —  Prioritized Planning on SMAT 2022\n";
+    std::cout << "==================================================\n";
+    std::cout << "  Path finder      : " << algorithm << "\n";
+    std::cout << "  Layout           : " << g->originalSize()
+              << " original + " << (g->size() - g->originalSize())
+              << " virtual = " << g->size() << " nodes\n";
+    std::cout << "  Agents           : " << agents << "\n";
+    std::cout << "  Horizon  (H)     : " << H << " steps planned per round\n";
+    std::cout << "  Commit   (C)     : " << C << " steps executed per round\n";
+    std::cout << "  Rounds           : " << rounds
+              << "  (= " << rounds * C << " time steps)\n";
+    std::cout << "--------------------------------------------------\n";
+
+    auto t0 = clock::now();
+    env.run(rounds);
+    auto t1 = clock::now();
+    double secs = std::chrono::duration<double>(t1 - t0).count();
+
+    // ── Results ───────────────────────────────────────────────────────────
+    std::cout << "  Goals reached    : " << env.arrivedCount() << "\n";
+    std::cout << "  Time elapsed     : " << env.elapsed() << " steps\n";
+    std::cout << "  Throughput       : " << std::fixed << std::setprecision(4)
+              << env.throughput() << " goals / step\n";
+    std::cout << "  Wall-clock       : " << std::setprecision(2) << secs << " s  ("
+              << std::setprecision(1) << (1000.0 * secs / rounds)
+              << " ms / round)\n";
+    std::cout << "==================================================\n";
+
+    delete g;
     return 0;
-    // TIP <a href="https://www.jetbrains.com/help/clion/">jetbrains.com/help/clion/</a>에서 CLion 도움말을 참조하세요. 또한, 메인 메뉴의 '도움말 | IDE 기능 알아보기'를 선택하여 CLion에 관한 대화형 강의를 이용할 수도 있습니다.
 }

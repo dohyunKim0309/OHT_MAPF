@@ -129,3 +129,100 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
   소유했음을 확인하고 부르는 명시적 옵트인 — 소유 결정은 호출자, delete 실행은 트리 대행.
   avl_tree.{h,cpp}에 clearAndDelete/destroyAndDelete 추가(ASan: 정리·재사용 무누수).
   avl_tree.md·design#소유권에 "비소유 + 옵트인 일괄정리" 명문화. reservation_table.md 갱신.
+- **막힘→결정 〔도메인〕** BFS+TEG 의사코드를 처음에 *암묵적 TEG*(visited 배열로
+  (node,time) 계산만)로 썼다가, 인간이 "그러면 TEG를 명시적으로 구현하는 게 아니다"라고
+  지적 → 정정. 암묵적은 ① 원래 "명시적 TEG" 결정 위반 ② TimeExpandedGraph 클래스 미사용
+  ③ "TEG=시간 복제(V·T 공간)" 비교 가설을 무너뜨림. 메모리 점검(V=500,H=28: TEG 정점
+  ~61만, ~15MB, M4 1초 미만)으로 명시적이 충분히 가능 확인 → **명시적 TEG로 확정**.
+  L4 bfs_teg.md를 buildTEG(정점·간선 생성, 점유 정점 간선 미생성으로 흡수) + 일반 BFS로
+  재작성. 정보 모순(설계↔의사코드)을 의사코드 수정으로 해소.
+- **발견 〔도메인〕** H=28 도달률 0.3% — V/H를 "maxW≤H(간선 하나)"로 맞췄으나 *경로는
+  간선 수백 개*. 확장본 원본 노드 간 홉 거리 중앙값 ~405, 최대 1406. H는 경로 전체 홉
+  수만큼 커야 도달. 잘못된 기준(간선 단위)을 바로잡음.
+- **결정 〔도메인〕** TEG 1회 빌드 재사용(인간 통찰). PP의 모든 에이전트가 같은
+  layout·H를 공유 → TEG 뼈대 동일, reservation만 다름. 그래서 ① TEG는 reservation
+  무관(layout만)하게 BfsTeg 멤버로 **1회 빌드** ② reservation은 **탐색 시** BFS가 isFree로
+  점유 정점 스킵해 흡수. 빌드 N회→1회. 소유: findPath 지역 RAII → BfsTeg 멤버. Planner
+  인터페이스는 공통(graph,reservation,H) 유지(ϕ-BF 호환), TEG는 BfsTeg 내부 사정.
+  실측(V=500,H=450): 빌드 ~300ms(1회) + 재사용 쿼리 ~85ms, found ~5/10(강연결 아님).
+  "TEG=V·T 공간" 비교 가설은 유지(공간은 그대로, 시간만 N→1). bfs_teg.h/cpp·L3·L4 갱신.
+- **결정 〔메타〕** Planner 전략 패턴 확정 — `Planner`(추상, 가상 findPath) ←
+  BfsTeg/BellmanPhi 상속, PP가 Planner* 주입받아 호출. Path = 길이 H+1 노드 배열 RAII
+  구조체(이동 시맨틱). graph에 originalCount/originalSize/isOriginal 추가(원본/가상=인덱스
+  threshold, 플래그 없이). TEG 정점 = 정수 인코딩 node*(H+1)+t. 전부 ASan 무누수 검증.
+- **발견 〔도메인〕** H=28 도달률 0.3% 재확인 — V/H를 "간선 하나(maxW≤H)"로 맞췄으나
+  경로는 수백 홉(확장본 원본 노드 간 중앙값 405). H를 경로 홉 수만큼 키워야 도달.
+  H=450 실측: 빌드 ~300ms(1회) + 쿼리 found 12~100ms / empty 100~200ms.
+- **발견 〔도메인〕** empty(도달 실패) 쿼리가 found보다 느림 — found는 목표서 break(방문
+  적음), empty는 horizon 내 도달가능 정점 전부 방문 후 실패. 세대 카운터로 *초기화*는
+  없앴으나(found 12ms로 입증) *방문량*은 BFS 본질. 근본 원인 = 강연결 아님(found ~5/10,
+  도달 불가 목표). → environment에서 도달 가능 목표 보장으로 완화 예정.
+- **결정 〔도메인〕** 세대 카운터 최적화(인간 동의) — visitedGen/pred/q를 BfsTeg 멤버로
+  1회 할당, 매 findPath `gen++`로 방문표시 O(1) 무효화(955만 칸 초기화 제거). "한 탐색에
+  TEG 정점은 한 번씩 방문(물리 노드는 여러 time=여러 정점)"이라 세대 판정 안전. 정확성
+  유지·ASan 무누수. L3·L4 갱신.
+- **결정 〔도메인〕** **Receding Horizon 모델 확정**(인간) — H=계획 지평(멀리 봄, ~100),
+  C=commit 실행 스텝(앞 C만 실행 후 재계획). H 커서 장기 계획, C로 자주 갱신해 동적
+  목표에 적응. 도달 후 긴 정지 낭비(H 큰 1회 계획의 문제) 해소. PP는 매 라운드 reservation
+  clear→우선순위 순 H스텝 계획→C스텝 실행. 목표: 도달 시 랜덤 새 목표(L1 명세). N=20~50.
+  environment·planner·reservation README 전면 갱신. (TEG=V·T 비교 가설은 H=100에서도
+  유지 — ϕ-BF는 원본 2858 노드만.)
+- **결정 〔도메인〕** `L5_implementation/environment/`(Agent·Environment)와
+  `L5_implementation/planner/prioritized_planning.{h,cpp}` 작성 —
+  [[L4_mechanism/environment]]·[[L4_mechanism/prioritized_planning]] 의사코드의
+  충실한 번역. Agent는 [[Interval]] 양식대로 *Data 묶음*(private 필드+getter,
+  가변 current/goal만 setter, operator<=priority). PP는 reservation.clear→min_heap
+  우선순위 순 findPath→recordPath([t,t+1) 점유). Environment는 receding step
+  (plan→C스텝 전진→도달 카운트++·랜덤 새 목표→now+=C). 검증: `g++ -Wall -Wextra`
+  무경고 + ASan/UBSan 무누수, ring+chord 강연결 layout에서 50라운드 238도달/300스텝.
+  CMakeLists에 planner/environment 소스 일괄 추가. main.cpp를 데모로 교체(합치기).
+- **막힘→결정 〔도메인〕** PP 계약 "out: Path n칸 배열을 받아 채움" ↔ 구현 "Path가
+  비복사·**기본생성 불가**(길이 생성자뿐)"의 정보 모순. environment가 `new Path[n]`을
+  못 해 처음엔 placement-new로 우회(코드 복잡). 인간과 대화로 해소 — Path 표현은
+  "Graph가 정수 예외(명시적 노드 클래스 없음)이므로 Path도 int[] RAII 유지"가 일관(인간
+  결정). 모순은 **Path 기본 생성자(빈 Path) 추가**로 해소 → environment는 `new Path[n]`로
+  단순화. planner.{h,cpp} 갱신.
+- **발견 〔메타〕** L4 환경/플래너 명세가 [미결]로 비워둔 *의미 결정*을 코드 작성 중 내가
+  임의로 채웠던 것(에이전트 초기 random 배치, priority=id, 빈 Path=제자리). L2 "추측
+  금지"상 막힘으로 보고했어야 함. 인간 결정으로 추인: ① random 시작·목표 = 수용
+  (seed로 재현성) ② priority=id 잠정(생성자 인자로 외부 변경 가능한 상태라 그대로 진행,
+  동적 우선순위는 추후) ③ 빈 Path=제자리(continue)는 L4 의사코드 본문과 일치. 해당 L4
+  [미결] 항목들은 잠정 확정.
+- **발견 〔메타〕** 빌드 검증 중 만든 임시 테스트 `smoke_env.cpp`가 vault 루트에 잔류
+  (샌드박스가 마운트 폴더 삭제를 막아 자동 제거 실패). 인간이 `rm smoke_env.cpp`로
+  정리 필요. 구조상 *L5 임시 테스트 파일의 자리* 미정의 — [[#미해결]] 후보(추후).
+- **결정 〔도메인〕** `throughput()` 반환 타입 `int`→`double`(인간). 수식
+  `arrived/now`(누적 도달 / 경과 스텝)는 옳았으나 정수 나눗셈이 거의 항상 0으로 절단됨.
+  소규모 함대는 스텝당 1 미만이라 실수가 맞음. 관측용 `arrivedCount()`/`elapsed()`
+  게터 추가. L3 environment README·L4 environment.md 시그니처·정책 갱신. main.cpp를
+  가독성 있게 재작성(설정 배너: 알고리즘·N·H·C·라운드, 정렬된 상태, throughput
+  goals/step). 실측 H=24·C=6·5에이전트·50라운드: 238도달/300스텝 = 0.793 goals/step.
+- **결정 〔도메인〕** main.cpp를 *실 SMAT FAB layout 로더*로 교체(인간: 실데이터로 결과
+  수집). `edges_expanded.txt`(헤더 `N M` + 0-index `from to`)를 fstream으로 읽어
+  Graph(originalCount=2858) 구성. 실측: 강연결 확인(원본 전 노드가 2858개 전부 도달),
+  ASan/UBSan 무누수. 결과 — throughput ∝ 에이전트 수(10→0.014, 20→0.032, 40→0.062),
+  라운드 비용 ∝ 에이전트(≈70ms/agent); horizon H=300→0.014·500→0.032·700→0.032(포화),
+  비용은 V·(H+1)로 증가. median 목표거리 ~405홉이라 H가 그만큼 커야 도달. 보고서 핵심
+  결과로 사용.
+- **결정 〔메타〕** 제출 보고서 작성 — Typst(`report/report.typ`)로 작성 후 PDF 컴파일
+  (인간: typ→pdf). 과제 명세(datastructure_project_2026.pdf: WHERE/HOW/WHY 각
+  자료구조·validity·efficiency)와 예시 양식(results/sub1.pdf: 표지+목차+과제 5단계
+  구조)을 따름. 표지(학번 202214223·김도현·전기전자공학과, 제출일 없음), 목차, 섹션 =
+  Introduction & Data Acquisition → Data Storage → Function Realization → Example Case
+  → Conclusion. Bellman-Ford 제외(인간). 자료구조 근거는 data_structure_design.md 기반
+  (graph 희소→adj list, AVL→reservation, min_heap→우선순위, queue/linked_list→BFS,
+  dynamic_array→substrate, stack 미채택). 한글 표지용 NanumGothic 폰트 다운로드해
+  font_path로 컴파일(샌드박스에 CJK 폰트 없음). 9쪽 산출.
+- **발견 〔메타〕** 보고서 미리보기 PNG 디렉터리(`report/_preview*`, `report/_pv*`)가
+  vault에 잔류(샌드박스 삭제 불가). `smoke_env.cpp`와 함께 인간이
+  `rm -rf report/_preview* report/_pv* smoke_env.cpp`로 정리 필요.
+- **결정 〔메타/도메인〕** 보고서 보강(인간) — ① 데이터 출처 논문 인용 추가: Choi et al.,
+  PLOS ONE 19(7):e0307059 (2024), "Visualization system to identify structurally
+  vulnerable links in OHT railway network…". 그 논문 abstract가 본 프로젝트 동기와
+  일치(OHT 경로를 Dijkstra SSSP로 정하나 수백 대 동시 운행 시 congestion/deadlock).
+  ② **Problem formulation 절 신설**(핵심): directed graph G=(V,E), 정수 edge weight
+  w=max(1,round(d/V)), 간선을 가상노드 w−1개로 펼쳐 "엣지 통과 중 대기/점유" 모델링 →
+  모든 간선 길이 1. conflict = 같은 (node,time) 점유만; **edge-swap은 directed라 불가**
+  (역방향쌍 0 검증)이라 노드 conflict만 처리 — 이것이 구현 대상. ③ 의존성 그래프 도식
+  (Data→빌딩블록→자료구조 3계층, Typst 네이티브, 영어). ④ TEG 필요성(단일 최적≠다중
+  충돌회피) 서술. ⑤ 메타 발언 제거. References 절 추가. 11쪽.
