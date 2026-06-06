@@ -38,10 +38,12 @@ tags: [interface, ds, building_block]
  - `AvlTreeNode* getLeft() const`, `void setLeft(AvlTreeNode*)` — 좌 자식 접근.
  - `AvlTreeNode* getRight() const`, `void setRight(AvlTreeNode*)` — 우 자식 접근.
 
-**height 접근**: public 접근자를 두지 않는다. [[avl_tree]]를 `friend`로
-선언해 avl_tree만 height를 직접 읽고 쓴다. 높이는 균형 로직의 일부이므로
-그 주인을 avl_tree로 한정한다. `data`는 `getData()`로 읽기만 하며 한 번
-받으면 바뀌지 않는다.
+**height·data 직접 접근**: public 접근자를 두지 않는다(`data`는 `getData()`로
+읽기만, `height`는 아예 비공개). [[avl_tree]]를 `friend`로 선언해 avl_tree만
+`height`와 `data`를 직접 읽고 쓴다. 높이는 균형 로직의 일부이고, `data` 교체는
+삭제(2-children 케이스: successor의 `Data*`로 내용 대체)에 필요하다 — 둘 다
+트리 로직의 일부라 그 주인을 avl_tree로 한정한다. 바깥에서는 `data`가 바뀌지
+않는다(friend인 avl_tree만 교체).
 
 **소유권**: 담은 `Data*`는 **비소유**. 노드 소멸자는 그것을 delete
 하지 않는다. `Data*`의 생사는 도메인 소유자가 쥔다. 전체 정책은

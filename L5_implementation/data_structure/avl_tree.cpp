@@ -34,6 +34,40 @@ Data* AvlTree::find(Data* key) const {
     return nullptr;
 }
 
+// Largest stored key strictly less than `key`. Works even if key is absent.
+Data* AvlTree::predecessor(Data* key) const {
+    AvlTreeNode* cur = root;
+    Data* best = nullptr;
+    while (cur != nullptr) {
+        if (*cur->getData() < *key) {   // cur < key → candidate, look right for a bigger one
+            best = cur->getData();
+            cur = cur->getRight();
+        } else {                        // cur >= key → go left
+            cur = cur->getLeft();
+        }
+    }
+    return best;
+}
+
+// Smallest stored key strictly greater than `key` (symmetric).
+Data* AvlTree::successor(Data* key) const {
+    AvlTreeNode* cur = root;
+    Data* best = nullptr;
+    while (cur != nullptr) {
+        if (*key < *cur->getData()) {   // cur > key → candidate, look left for a smaller one
+            best = cur->getData();
+            cur = cur->getLeft();
+        } else {                        // cur <= key → go right
+            cur = cur->getRight();
+        }
+    }
+    return best;
+}
+
+void AvlTree::remove(Data* key) {
+    root = removeNode(root, key);
+}
+
 // Explicit opt-in: delete every stored Data* too, then reset to empty.
 // Normally the tree is non-owning; the caller calls this only when it owned
 // the stored Data* and wants the tree to do the bulk cleanup.
@@ -114,6 +148,44 @@ AvlTreeNode* AvlTree::insert(AvlTreeNode* node, Data* elem) {
         node->setRight(insert(node->getRight(), elem));
     } else {
         return node;   // duplicate key: not inserted, subtree unchanged
+    }
+    return rebalance(node);
+}
+
+// ── private: leftmost node of a subtree (its minimum key) ──────────────────
+
+AvlTreeNode* AvlTree::findMin(AvlTreeNode* node) {
+    assert(node != nullptr && "findMin precondition");
+    while (node->getLeft() != nullptr) {
+        node = node->getLeft();
+    }
+    return node;
+}
+
+// ── private: recursive delete + rebalance on the way up ────────────────────
+
+AvlTreeNode* AvlTree::removeNode(AvlTreeNode* node, Data* key) {
+    if (node == nullptr) return nullptr;   // key absent: unchanged
+
+    Data* d = node->getData();
+    if (*key < *d) {
+        node->setLeft(removeNode(node->getLeft(), key));
+    } else if (*d < *key) {
+        node->setRight(removeNode(node->getRight(), key));
+    } else {
+        // equivalent key: delete this node
+        if (node->getLeft() == nullptr || node->getRight() == nullptr) {
+            // 0 or 1 child
+            AvlTreeNode* child =
+                (node->getLeft() != nullptr) ? node->getLeft() : node->getRight();
+            delete node;        // node only; stored Data* is non-owning
+            return child;       // splice in the (single or null) child
+        } else {
+            // 2 children: replace content with in-order successor, delete it
+            AvlTreeNode* succ = findMin(node->getRight());
+            node->data = succ->getData();   // friend access: copy successor's Data* up
+            node->setRight(removeNode(node->getRight(), succ->getData()));
+        }
     }
     return rebalance(node);
 }

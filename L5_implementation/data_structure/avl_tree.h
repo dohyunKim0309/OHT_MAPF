@@ -29,6 +29,18 @@ public:
     // O(log N).
     Data* find(Data* key) const;
 
+    // Largest stored key strictly less than `key` (in-order predecessor).
+    // Works whether or not `key` is in the tree. nullptr if none. O(log N).
+    Data* predecessor(Data* key) const;
+
+    // Smallest stored key strictly greater than `key` (in-order successor).
+    // Works whether or not `key` is in the tree. nullptr if none. O(log N).
+    Data* successor(Data* key) const;
+
+    // Remove the node whose key is equivalent to `key`, then rebalance.
+    // Non-owning: the stored Data* is NOT deleted (caller keeps it). O(log N).
+    void remove(Data* key);
+
     // Empty the tree AND delete every stored Data*, then reset to empty.
     // The tree is normally non-owning (~AvlTree frees only nodes); this is an
     // explicit opt-in for a caller that DID own the stored Data* and wants the
@@ -48,6 +60,8 @@ private:
     static AvlTreeNode* rebalance(AvlTreeNode* node);    // picks and applies rotation
 
     static AvlTreeNode* insert(AvlTreeNode* node, Data* elem);  // recursive insert
+    static AvlTreeNode* removeNode(AvlTreeNode* node, Data* key); // recursive delete + rebalance
+    static AvlTreeNode* findMin(AvlTreeNode* node);             // leftmost node of subtree
     static void destroy(AvlTreeNode* node);                     // post-order free (nodes only)
     static void destroyAndDelete(AvlTreeNode* node);            // post-order free + delete Data*
 };

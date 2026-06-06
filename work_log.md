@@ -124,3 +124,8 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
   ϕ-BF는 확장본 없이 원본 V·E(~980만)만 → 더 쌈. **"실 fab 규모에서 명시적 TEG는
   ϕ-BF보다 무겁다"가 L1 비교 가설을 정량 입증** — 보고서 핵심 결과 후보. 갱신 위치:
   planner 가지(TEG 물질화 전략), L1 비교 서술.
+- **결정 〔도메인〕** Interval 소유권(인간) = **비소유 + clearAndDelete 위임**. avl_tree
+  기본 소멸자는 비소유(노드만), `clearAndDelete()`는 호출자(reservation_table)가 Data*를
+  소유했음을 확인하고 부르는 명시적 옵트인 — 소유 결정은 호출자, delete 실행은 트리 대행.
+  avl_tree.{h,cpp}에 clearAndDelete/destroyAndDelete 추가(ASan: 정리·재사용 무누수).
+  avl_tree.md·design#소유권에 "비소유 + 옵트인 일괄정리" 명문화. reservation_table.md 갱신.
