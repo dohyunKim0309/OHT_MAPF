@@ -8,7 +8,10 @@
 #include "environment/environment.h"
 #include "planner/prioritized_planning.h"
 #include "planner/bfs_teg.h"
+#include "planner/bellman_phi.h"
 #include "data_structure/graph.h"
+
+#include <cstring>
 
 #include <chrono>
 #include <cstdlib>
@@ -59,22 +62,30 @@ int main(int argc, char** argv) {
     std::srand(7);   // fixed seed: reproducible random start/goal placement
 
     // ── Configuration ───────────────────────────────────────────────────────
-    const char* algorithm   = "BFS + Time-Expanded Graph";
     const int   originalNodes = 2858;            // SMAT 2022 original OHT nodes
     const std::string layoutPath =
         (argc > 1) ? argv[1] : "data/edges_expanded.txt";
     // Light defaults so a no-argument run from the IDE finishes in a few seconds.
-    // Pass arguments for heavier experiments, e.g.:  OHT_MAPF <layout> 40 500 50 10
+    // Args:  OHT_MAPF <layout> <agents> <H> <C> <rounds> <algo>
+    //   <algo> = "bfs" (BFS+TEG, default) | "phi" (phi Bellman-Ford)
+    // e.g.:  OHT_MAPF data/edges_expanded.txt 40 500 50 10 phi
     const int   agents = (argc > 2) ? std::atoi(argv[2]) : 50;
     const int   H      = (argc > 3) ? std::atoi(argv[3]) : 1000;  // planning horizon
     const int   C      = (argc > 4) ? std::atoi(argv[4]) : 200;   // commit length
     const int   rounds = (argc > 5) ? std::atoi(argv[5]) : 5;    // simulation rounds
+    const bool  usePhi = (argc > 6) && std::strcmp(argv[6], "phi") == 0;
 
     Graph* g = loadExpandedGraph(layoutPath, originalNodes);
     if (!g) return 1;
 
-    BfsTeg finder;
-    PrioritizedPlanning pp(&finder, *g, g->size());
+    // Strategy pattern: pick the PathFinder; PP and Environment are unchanged.
+    BfsTeg     bfs;
+    BellmanPhi phi;
+    PathFinder* finder = usePhi ? static_cast<PathFinder*>(&phi)
+                                : static_cast<PathFinder*>(&bfs);
+    const char* algorithm = usePhi ? "phi Bellman-Ford (no time-expansion)"
+                                   : "BFS + Time-Expanded Graph";
+    PrioritizedPlanning pp(finder, *g, g->size());
     Environment env(*g, agents, &pp, H, C);
 
     // ── Banner ──────────────────────────────────────────────────────────────

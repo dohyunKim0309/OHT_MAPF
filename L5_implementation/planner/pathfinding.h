@@ -6,7 +6,18 @@
 #define OHT_MAPF_PLANNER_H
 
 #include "../data_structure/graph.h"
+#include "../data_structure/data.h"
 #include "reservation_table/reservation_table.h"
+
+// NodeRef: a one-cell Data wrapper holding an integer vertex id, so plain ints
+// can ride the (Data*-based) Queue during a search. No operator< (the search
+// queues are FIFO and never compare). A PathFinder owns a reusable pool of these.
+// Used by both BfsTeg (TEG vertex ids) and BellmanPhi (layout node ids).
+class NodeRef : public Data {
+public:
+    NodeRef() : id(-1) {}
+    int id;
+};
 
 // Path: a fixed-length (H+1) sequence of node indices over time.
 // path.at(t) = the node occupied at time t. Staying put = same node repeated;

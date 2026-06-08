@@ -74,10 +74,10 @@ tags: [interface, ds]
 - [[linked_list_node]] — `Data*` 한 칸 (linked_list의 뼈대)
 - [[dynamic_array]] — 각 칸이 Data*
 
-**구체 Data 자식이 도메인 모듈에서 정의되어 자료구조에 저장됨** (타입 인지):
-- [[reservation_table]] — Interval
-- [[pp]] — Agent
-- [[planner]] — BFS+TEG가 queue에 담는 TEG 정점 표현. graph의 Graph Node를
-  직접 쓸지, planner 고유 Data를 둘지는 planner 가지에서 확정 (미정).
+**구체 Data 자식(흐르는 데이터 타입)이 도메인 모듈에서 정의되어 자료구조에 저장됨**
+(타입 인지). 전체 조망은 [[L2_structure/data_types]]:
+- [[interval]] — [[reservation_table]]가 정의·소유, [[avl_tree]]에 담김.
+- [[agent]] — [[environment]] 소유, [[planner]]의 [[min_heap]]에 빌려 담김.
+- (BFS+TEG의 TEG 정점은 정수 인코딩으로 다뤄 별도 Data 자식을 두지 않음.)
 
 전체 의존 관계는 [[data_structure_design]] 참조.

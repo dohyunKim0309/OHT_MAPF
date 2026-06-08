@@ -5,6 +5,11 @@ tags: [interface, domain, planner, algorithm]
 
 # BfsTeg (BFS + Time-Expanded Graph)
 
+> **구성 축** (axis-role: bottom)
+> inherits:: [[planner|PathFinder]]
+> uses:: [[graph]], [[queue]], [[reservation_table]], [[dynamic_array]]
+> produces:: [[path]]
+
 ## 위치
 [[planner]]의 단일 에이전트 경로 탐색 구현 중 하나. `PathFinder` 추상 클래스를
 상속한다(전략 패턴). 베이스라인 알고리즘.

@@ -4,19 +4,21 @@
 
 #include "bfs_teg.h"
 
+#include "../data_structure/queue.h"
+
 #include <cassert>
 
 // TEG vertex encoding: id(node, t) = node*(H+1) + t.
 
 BfsTeg::BfsTeg()
     : teg(nullptr), builtH(-1),
-      visitedGen(nullptr), pred(nullptr), q(nullptr), scratchSize(0), gen(0) {}
+      visitedGen(nullptr), pred(nullptr), qpool(nullptr), scratchSize(0), gen(0) {}
 
 BfsTeg::~BfsTeg() {
     delete teg;
     delete[] visitedGen;
     delete[] pred;
-    delete[] q;
+    delete[] qpool;
 }
 
 // Allocate scratch once (or grow). visitedGen starts at 0; gen starts at 0 too,
@@ -25,11 +27,11 @@ void BfsTeg::ensureScratch(int size) {
     if (size <= scratchSize) return;
     delete[] visitedGen;
     delete[] pred;
-    delete[] q;
+    delete[] qpool;
     visitedGen = new int[size];
     pred       = new int[size];
-    q          = new int[size];
-    for (int i = 0; i < size; ++i) visitedGen[i] = 0;   // once
+    qpool      = new NodeRef[size];
+    for (int i = 0; i < size; ++i) { visitedGen[i] = 0; qpool[i].id = i; }  // once
     scratchSize = size;
 }
 
@@ -77,15 +79,15 @@ Path BfsTeg::findPath(int start, int goal,
     ensureScratch(Vt);
     ++gen;                    // marks from previous searches are now stale
 
-    int qHead = 0, qTail = 0;
+    Queue q;                  // FIFO over TEG vertex ids (wrapped as NodeRef*)
     int s = start * stride + 0;
     visitedGen[s] = gen;
     pred[s] = -1;             // start has no predecessor
-    q[qTail++] = s;
+    q.enqueue(&qpool[s]);
 
     int goalVertex = -1;
-    while (qHead < qTail) {
-        int cur = q[qHead++];
+    while (!q.isEmpty()) {
+        int cur = static_cast<NodeRef*>(q.dequeue())->id;
         if (cur / stride == goal) {
             goalVertex = cur;
             break;
@@ -99,7 +101,7 @@ Path BfsTeg::findPath(int start, int goal,
             if (!reservation.isFree(nNode, nTime)) continue;
             visitedGen[nxt] = gen;
             pred[nxt] = cur;
-            q[qTail++] = nxt;
+            q.enqueue(&qpool[nxt]);
         }
     }
 

@@ -23,6 +23,7 @@ tags: [meta, claude_md]
 
 - [[L1_purpose/README]] — 프로젝트의 목적, 범위, 성공 기준
 - [[L2_structure/folder_structure_and_responsibilities]] — 폴더 구조, 작업 흐름
+- [[L2_structure/system_architecture]] — 구성 축 조망(모듈 top→foundation, 의존 그래프)
 - [[L2_structure/claude_md_index]] — 본 문서를 포함한 모든 CLAUDE.md 추적
 
 ## 3. 작업 종류별 진입점

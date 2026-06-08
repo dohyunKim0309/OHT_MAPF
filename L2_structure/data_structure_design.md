@@ -15,6 +15,9 @@ tags: [structure, ds, design]
 여기 담는 것은 *자료구조 선정* 근거다. 개별 모듈을 *어떻게 구현하는가*의
 내부 결정(예: 가상 소멸자, 비소유 정책, 균형 회전)은 각 L3 모듈 문서에 둔다.
 
+> 짝 문서: 이 문서가 *컨테이너(부품)* 조망이라면, [[L2_structure/data_types]]는 그
+> 컨테이너 사이를 *흐르는 값*(Interval·Agent·Path) 조망이다.
+
 ## 범위
 
 사용처는 두 single-agent planner(BFS+TEG, ϕ Bellman-Ford)와 그 상위
@@ -97,8 +100,8 @@ graph TD
 <tr><td>min_heap</td><td>PP의 Agent 우선순위 큐 (하나씩 추출)</td><td>Agent</td></tr>
 <tr><td rowspan="2">avl_tree<br>(Reservation Table)</td><td>BFS+TEG: TEG 빌드 시 점유 정점 제거 필터</td><td rowspan="2">Interval</td></tr>
 <tr><td>ϕ-BF: 런타임 interval query (ϕ)</td></tr>
-<tr><td rowspan="2">graph<br>(인접 리스트)</td><td>ϕ-BF: weighted 원본 (간선 길이를 ϕ에 더함)</td><td rowspan="2">Graph Node</td></tr>
-<tr><td>BFS+TEG: unweighted 확장본 → 시간 확장</td></tr>
+<tr><td rowspan="2">graph<br>(인접 리스트)</td><td>BFS+TEG: unweighted 확장본 → 시간 확장(TEG)</td><td rowspan="2">Graph Node</td></tr>
+<tr><td>ϕ-BF: 같은 unweighted 확장본 → 시간 복제 없이 ϕ 회피</td></tr>
 <tr><td rowspan="2">queue<br>(FIFO, linked_list 기반)</td><td>BFS+TEG: TEG 위 BFS 탐색 큐</td><td rowspan="2">Graph Node / TEG 정점</td></tr>
 <tr><td>ϕ-BF: 라운드 전파 큐 (SPFA식)</td></tr>
 <tr><td>linked_list</td><td>queue의 뼈대 (head/tail 양끝 O(1))</td><td>Graph Node</td></tr>
@@ -122,11 +125,11 @@ graph TD
   interval query로 쓴다.
 
 **graph** — Layout 표현 (인접 리스트). 담는 것: Graph Node (정점 + 이웃 목록).
-두 형태를 보유한다.
-- **원본 weighted 방향 그래프**: 각 간선에 정수 길이. ϕ-BF가 이것을 받아
-  간선 길이를 ϕ 계산에 직접 더한다.
-- **unweighted 확장본**: 각 간선을 가상 노드로 펼쳐 모든 간선 길이 1.
-  BFS+TEG가 이것을 시간 확장(TEG)하여 탐색한다.
+**두 planner가 같은 unweighted 확장본을 공유한다**(각 간선을 가상노드로 펼쳐 길이 1).
+전처리가 weighted 원본(`edges.txt`)도 내보내지만, 현재 모델에선 두 planner 모두
+확장본(`edges_expanded.txt`)을 쓴다. 차이는 그래프 형태가 아니라 *시간 처리*다:
+- **BFS+TEG**: 확장본을 시각마다 복제(TEG, 공간 V·(H+1))해 그 위에서 BFS.
+- **ϕ-BF**: 같은 확장본을 복제 없이(원본 V 노드만) 쓰고, 점유는 런타임 ϕ로 회피.
 
 **queue** — FIFO 탐색/전파. linked_list(head/tail)를 뼈대로 써서
 enqueue(pushBack)/dequeue(popFront)가 양끝 O(1)이다. 담는 것: Graph Node
@@ -162,8 +165,13 @@ predecessor 체인을 목표→시작으로 역추적해 경로를 복원한다.
 | 구체 Data | 도메인 모듈 | 담기는 곳 | 비교(`operator<`) |
 |---|---|---|---|
 | Interval | reservation_table | avl_tree | override — 시작점 순 |
-| Agent | pp | min_heap | override — 우선순위 |
-| (TEG 정점) | planner/graph | queue | 불필요 (FIFO) — 미결 |
+| Agent | environment | min_heap | override — 우선순위 |
+| NodeRef | planner(공용) | queue | 불필요 (FIFO) — id만 래핑 |
+
+> **NodeRef**(확정 2026-06-07). 정수 정점 id 한 칸을 담는 `Data` 래퍼. BFS+TEG의
+> TEG 정점 id, ϕ-BF의 노드 id를 같은 `queue`(Data\* 기반)에 태우기 위함. 비교 안
+> 함(FIFO). PathFinder가 V(또는 V·(H+1))개 풀로 미리 할당해 재사용(매 enqueue new
+> 안 함). 두 planner의 탐색 큐를 같은 `Queue` 클래스로 통일한 결과 생긴 공용 타입.
 
 **Interval** (확정 2026-06-06). `[start, end)` 정수 반열림 구간. 필드는
 `start`/`end`만(간단 버전 — agent id 등은 병합과 충돌하므로 두지 않는다).

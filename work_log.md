@@ -29,12 +29,9 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
   부른다. 정보 모순. (2026-06-06 발견)
 - 〔메타〕 계약↔기전 축 적용 후속 — L3 계약 문서에 남은 *상세 기전*을 L4로 재단해야.
   [[avl_tree]]의 회전 단계 설명(ASCII·이미지)이 대표 사례. (2026-06-06 발견)
-- 〔도메인〕 graph unweighted 통일 후속 정합 — graph가 weight 없이 통일되며 ϕ-BF도
-  weighted 원본이 아닌 **unweighted 확장본**을 쓰게 됨. 그러나 [[data_structure_design]]
-  (graph "두 형태 보유", ϕ-BF "weighted 원본", 사용처 표·비교 축), [[L1_purpose/README]],
-  [[work_log]] 이전 기록은 아직 "ϕ-BF=weighted / BFS+TEG=확장본"의 옛 서술. 새 모델은
-  *둘 다 같은 확장본 공유*, 차이는 "TEG 시간확장(BFS) vs 확장본 위 ϕ 시간회피(ϕ-BF)".
-  정보 모순 — 위 문서들 일괄 갱신 필요. (2026-06-06 발견, 갱신 보류)
+- 〔도메인〕 (해소 2026-06-07) graph unweighted 통일 후속 정합 — [[data_structure_design]]의
+  graph "두 형태/ϕ-BF=weighted 원본" 서술을 "둘 다 unweighted 확장본 공유, 차이는 시간
+  처리"로 갱신함. [[L1_purpose/README]]는 잔여 점검 대상(아래 기록 참조).
 
 ## 기록
 
@@ -248,3 +245,105 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
   Obsidian에서 폴더마다 동명이라 링크가 모호 → 리네임으로 비로소 정확히 풀린다. 명명 규칙
   (folder_structure #명명 규칙)의 "폴더 대표 문서=README.md"를 "=<폴더이름>.md"로 갱신.
   `environment.md`는 L4와 basename 충돌하나 기존 규칙(무자격=L3, L4는 경로 명시)으로 해소.
+- **결정 〔메타〕** 보고서 다듬기(인간) — ① Typst 텍스트모드에 남던 `{,}`·`{+}`(예
+  `1{,}423`, `V×(H{+}1)`)를 일괄 제거(`,`·`+`로), math는 `$V times (H+1)$`로. ② 1.1에
+  "balanced search tree (AVL tree)" 명시. ③ AVL 절에 **operator overloading**(수업 내용)
+  설명 확대 — 제네릭 트리가 `<`로만 정렬하고 Interval이 `operator<`를 override해 의미를
+  부여한다는 점, 인라인 코드 + `assets/Interval Operation Overloading.png`(Figure 1)
+  첨부. ④ 실행 증명으로 `assets/main_result_0607_0032.png`(Figure 2, 50에이전트·H=1000·
+  C=200·5R→74도달·0.074 goals/step) 첨부. 13쪽.
+- **발견→결정 〔메타/방법론〕** 인간이 "top→middle→…→모듈 분류"와 "Interval·Path가 문서
+  없이 떠도는 것"을 지적 → 방법론의 빈 곳 포착. 현 L0는 *추상화 축(L1~L5)* 하나만
+  명시하나, Environment·PP·PathFinder·자료구조의 관계는 추상화가 아니라 **구성/의존
+  축**(누가 누구를 부르나)이다. 둘은 작업기억 한계에 대한 두 대응(**압축**=세로 추상화,
+  **분할**=가로 구성)에서 같은 뿌리로 도출됨 → **추상화 축과 직교하는 독립 축으로 L0에
+  추가**(인간 결정). [[L1]] "구조"·"흐름" 절에 두 축 도출·구성 축 흐름 추가, [[L2]]에
+  "두 축을 함께 운영한다" 절 신설(top→foundation 명명, 이 프로젝트의 구성 축 예,
+  두 좌표=(층,구성위치), 문서 배치 규칙). **흐르는 데이터 타입(Agent·Interval·Path)을
+  노드로 승격하는 기준은 보류**(인간: 나중에) — 구성 축을 적용하며 정함. 인간이 Data
+  폴더에 Data/Interval/Path/Agent 4문서 두는 안 고려 중.
+- **결정 〔메타/방법론〕** 두 축 통합을 *간결하게* 재정리(인간) — 앞서 L1을 과하게
+  고쳤던 것 원복. L1은 원본의 "구조/흐름"을 베이스로 두 축은 한 문단·한 인용으로만 언급,
+  상세 운영은 L2로. **엣지 어휘 확정**: 추상화 축은 `refines`/`abstracts`(이것만 레벨
+  결정), 구성 축은 5종 `calls`/`delegates-to`/`uses`/`owns`/`inherits`(추후 압축
+  여지). 좌표 = (레벨, 높이): 추상화=평면, 구성 높이(top→foundation)=다른 축, 관계
+  종류=엣지 색. 인간 통찰 — 구성 축에 "어느 쪽이 top에 가까운가"로 *높이(y)* 정의 가능.
+- **결정 〔메타〕** 3D 시각화 조사 결과(WebSearch) — 기성 Obsidian 3D 플러그인(New 3D
+  Graph·3D Graph New 등)은 force/DAG로 위치를 *자동* 계산해 "레벨을 명시적으로 박아
+  평면 고정"이 안 됨(DAG mode도 위상정렬로 레벨 자동결정). 엣지 타입별 색은 Juggl(2D,
+  Dataview+Breadcrumbs 경유)만. → 레벨 명시 고정은 `3d-force-graph`의 `fz` 직접 지정
+  커스텀 뷰어를 *직접 만들면* 가능(옵션 열어둠, 지금은 미구현). 비교 메모는 임시 파일
+  `AXIS_NOTATION_COMPARISON.md`(인간이 정리 후 삭제 가능).
+- **결정 〔메타/방법론〕** 흐르는 데이터 타입을 **노드로 승격**(인간) — `L3_interface/
+  data_types/` 신설, Interval·Agent·Path 독립 .md + 인덱스 `data_types.md`. 기존 부모
+  문서(reservation_table·environment·planner)의 인라인 정의는 요약+[[링크]]로 대체.
+  Path는 [[data]] 비상속(컨테이너 원소 아님)을 명문화. 베이스 [[data]]는 "흐르는 값"이
+  아니라 컨테이너 베이스라 `data_structure/`에 잔류(인간의 "Data 폴더 4개" 안과 다르게
+  처리 — 확인 요망). **메타 블록(구성 축) 박기** 시작 — environment(top)·planner
+  (middle)·bfs_teg/reservation_table(bottom) + 데이터 타입 노드에 `calls`/`delegates-to`/
+  `uses`/`owns`/`inherits`/`reads`/`produces` 인라인 필드 추가. 전 링크 해석 확인,
+  stale `[[pp]]`/`[[pathfinding]]` 정리.
+- **결정 〔메타〕** 데이터 타입 *조망*을 L2로(인간) — L3 `data_types/`의 인덱스 역할을
+  **`L2_structure/data_types.md`** 신설로 이관·강화. 프로젝트 목표에서의 역할(Agent
+  입력→Path 출력→Interval 제약), 상속 관계(Interval·Agent=Data 상속, Path=비상속;
+  mermaid), 흐름·소유 표, 경계(Data 베이스·TEG 정수정점·임시값 제외)를 L2 추상도로 서술.
+  [[data_structure_design]](컨테이너 조망)과 **짝 문서**로 상호링크. L3
+  `data_types/data_types.md`는 샌드박스 삭제 불가라 **L2 리다이렉트 스텁**으로 축소(인간이
+  `rm`로 정리). `[[data_types]]` 링크는 basename 충돌 피해 `[[L2_structure/data_types]]`로
+  경로 명시.
+- **결정 〔메타〕** **L2 시스템 아키텍처 조망 신설**(`L2_structure/system_architecture.md`,
+  인간) — 구성 축(top→foundation) 전용 조망. folder_structure(추상화 축·폴더)와 직교.
+  내용: top→foundation 책임 표, **의존 그래프 mermaid**(calls/delegates/uses/owns/
+  inherits/built-on 엣지), **한 라운드 정보 흐름 sequenceDiagram**(Environment→PP→
+  PathFinder→ReservationTable), 두 축 좌표 표, 확장 지점(ϕ-BF를 delegates 자리에 끼움).
+  [[data_types]](흐르는 값)·[[data_structure_design]](컨테이너)와 역할 분담. CLAUDE.md
+  인덱스에 추가. mermaid 2블록 구조 검증(graph subgraph/end 균형, sequence loop/end·
+  Note·br 정상). 전 위키링크 해석 확인.
+- **결정 〔도메인〕** ϕ-BF가 **unweighted 확장본 공유**(BFS+TEG와 동일 입력) 확정(인간) —
+  work_log 미해결 "weighted vs 확장본" 모순 해소. 차이는 입력이 아니라 *시간 처리*:
+  TEG 시간확장(BFS) vs 확장본 위 ϕ 시간회피(SPFA Bellman-Ford). design 문서 옛 서술
+  (graph "두 형태"·"ϕ-BF=weighted") 갱신.
+- **결정 〔도메인〕** **BellmanPhi 작성(L3→L4→L5)** — `PathFinder` 두 번째 구현(전략
+  패턴). 노드별 최早 도달 `earliest[]`(크기 V, **시간 복제 없음**)를 SPFA 완화로 구하고,
+  간선당 `reservation.phi(v, t+1)`로 점유 회피. 경로 복원은 phi 점프로 생긴 대기를 앞
+  노드로 채워 [[path]] 형식을 BFS+TEG와 일치. SPFA 큐는 **Queue 클래스 사용**(인간) —
+  노드 인덱스를 담을 `NodeRef:Data` 풀(V개 미리 할당, 비교 불필요). main에 `<algo>` 인자
+  추가(`bfs`|`phi`)로 전략 선택, PP·environment 불변.
+- **발견/검증 〔도메인〕** **핵심 비교 결과** — verify_phi(200쌍·랜덤 reservation·실
+  21,178노드): ϕ-BF와 BFS+TEG가 **도달성 200/200 일치, 최早 도달시각 전부 일치(0
+  mismatch), ϕ-BF 경로 전수 유효**(인접-or-대기·점유회피). 즉 *같은 최적해, 다른 시간
+  처리*. main 실측(20에이전트·H=500·C=50·5R, 동일 결과 5도달·0.0200/step): **BFS+TEG
+  1352.7ms/round vs ϕ-BF 6.2ms/round (~220배)**. L1 비교 가설 정량 입증 — TEG 물질화
+  (V·(H+1)≈10.6M)가 ϕ 회피(원본 V만)보다 훨씬 무겁다. `-Wall -Wextra` 무경고 + ASan/
+  UBSan 무누수(verify·full binary 둘 다). verify_phi.cpp는 임시 검증 파일(인간 정리 여지).
+- **결정 〔도메인〕** BFS+TEG의 탐색 큐도 raw `int* q`→**Queue 클래스로 통일**(인간) —
+  ϕ-BF와 같은 패턴. TEG 정점 id를 `NodeRef`로 래핑. `NodeRef`를 두 planner 공용으로
+  `pathfinding.h`로 이동(필드 `node`→`id`). BfsTeg는 qpool을 Vt개, BellmanPhi는 V개
+  풀로 1회 할당 재사용. design 문서 "구체 Data 자식" 표에 NodeRef 추가(옛 "TEG 정점
+  미결" 해소). 검증: 무경고 빌드 + verify PASS(도달성·도착시각 일치, ϕ 경로 유효) +
+  ASan 무누수.
+- **검증 〔도메인〕 성공 조건 충족** — 같은 priority·H·C에서 두 planner의 결과·throughput
+  동일 확인(인간 요구): 20에이전트·H500·C50·5R → 둘 다 5도달/0.0200; 40에이전트·H400·
+  C50·8R → 둘 다 23도달/0.0575. wall-clock만 차이(후자 4180ms vs 8.7ms/round). 같은
+  최적해를 다른 시간처리로 — PP가 priority 순 같은 reservation을 쌓으므로 같은 입력→같은
+  경로→같은 throughput.
+- **발견 〔도메인〕** stuck(빈 Path)의 진짜 원인 규명(인간 지적) — 강연결이라 *도달 불가는
+  아님*(unreachable=0 측정). 원인은 **horizon 한계**: 확장본 원본 노드 간 홉거리 중앙값
+  399·최대 1465라, 목표가 H홉보다 멀면 그 라운드에 못 닿아 빈 Path. 단일 에이전트
+  기준 도달률 H=300→27.7%, 500→66.4%, 700→85.7%, 1000→94.9%, 1500→100%. 즉 "강연결
+  아님"이 아니라 "H보다 먼 목표"가 문제. (기존 미해결 "강연결 아님" 서술 정정.)
+- **결정(보류) 〔도메인〕** findPath를 **부분 경로 반환**으로 바꾸는 안 논의(인간) —
+  H 안에 목표 미도달이어도 빈 Path 대신 *목표까지 최단경로의 앞 H스텝*을 잘라 반환
+  (receding이라 매 라운드 가까워져 결국 도달, 재추첨 불필요). 그러나 "목표까지 찾기"는
+  H_search를 키워야 하고 BFS+TEG는 V·(H_search+1)로 다시 비싸짐 — **ϕ-BF는 O(V)
+  고정이라 거의 공짜**. 이 비대칭이 "긴 시야엔 ϕ-BF만 감당"이라는 새 비교 메시지. 같은
+  H_search·C·priority면 두 planner 결과는 여전히 동일(성공조건 유지), 차이는 비용뿐.
+  → **지금은 보류**(인간: 비용 이슈 그대로 두고), 코드 미변경.
+- **결정 〔메타/시각화〕** FAB 레이아웃 시각화(`viz/fab_simulation.html`) — 원논문
+  (Choi et al. 2024)이 *좌표 기밀이라 force-directed+grid로 그렸다* 확인. 처음엔 동일하게
+  force-directed로 했으나 블롭이라 조잡 → **ID 구조 기반 결정론적 fab-grid로 전환**:
+  A베이20(위 줄)·B베이20(아래 줄)·InterBay 트렁크3(InterBay3 위·2 중앙·1 아래, 각 베이가
+  인접 두 트렁크에 연결). 베이 내부는 인접 순서로 루프 배치. 자체완결 HTML+canvas,
+  ϕ-BF 시뮬레이션 14에이전트 이동 애니메이션(재생/시크). viz_export.cpp로 궤적 JSON
+  덤프(원본 노드로 snap), Python으로 좌표 계산. stuck 에이전트 사라짐 버그 수정(재추첨,
+  단 근본은 위 horizon 이슈). viz_export.cpp·_preview*.png는 임시 산출물.

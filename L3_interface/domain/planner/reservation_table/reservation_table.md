@@ -5,6 +5,11 @@ tags: [interface, domain, planner, reservation_table]
 
 # ReservationTable (시간 점유 표)
 
+> **구성 축** (axis-role: bottom)
+> used-by:: [[planner]], [[bfs_teg]]
+> uses:: [[avl_tree]], [[dynamic_array]]
+> owns:: [[interval]]
+
 ## 위치
 [[planner]] 하위 도메인 구성요소. 공용 토대([[avl_tree]], [[dynamic_array]])를
 빌려 쓰고, 자기 데이터([[#Interval]])와 자기 알고리즘(구간 병합 조율)을 가진다.
@@ -35,14 +40,10 @@ tags: [interface, domain, planner, reservation_table]
 - **안쪽층**: 각 칸의 [[avl_tree]]. 노드 x의 사용 불가 구간들을 Interval로
   담아 시작점 순으로 정렬 보관. 서로 겹치지 않는 분리 구간(병합으로 유지).
 
-### Interval (구체 Data 자식)
-`[start, end)` 정수 반열림 구간. `Data`를 상속해 avl_tree에 담긴다.
-- **필드**: `int start`, `int end` (간단 버전 — agent id 등은 병합과 충돌해 제외).
-- `operator<` override: 시작점 비교. avl_tree의 정렬·탐색 근거.
-- `touches(const Interval&)`: 닿거나 겹치는지 판정 (경계가 만나도 병합 대상).
-- `merge(const Interval&)`: 합친 구간 `[min start, max end)` 생성.
-- `touches`/`merge`는 **Interval 고유 메서드**(Data 베이스 가상함수 아님).
-  avl_tree는 이를 모르고, ReservationTable만 호출한다.
+### Interval (이 모듈이 정의·소유하는 흐르는 데이터 타입)
+`[start, end)` 정수 반열림 구간. 상세 정의는 [[interval]]. 요약: `Data` 상속
+(`operator<`=시작점), `touches`/`merge`로 "닿으면 병합". 이 모듈이 `new`/`delete`로
+소유하고 [[avl_tree]]에 담는다.
 
 ### 병합 조율 (reserve 연산)
 새 구간 `[a,b)`를 노드 x에 기록할 때:

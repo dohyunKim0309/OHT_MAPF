@@ -34,11 +34,11 @@ private:
     // Search scratch, allocated once (size = TEG vertex count) and reused.
     // visitedGen[v] == gen means "visited in the current search" — bumping gen
     // invalidates all marks in O(1) instead of clearing the whole array.
-    int* visitedGen;          // generation stamp per vertex
-    int* pred;                // predecessor vertexId (valid only if visited this gen)
-    int* q;                   // BFS queue buffer
-    int  scratchSize;         // size of the above arrays (= Vt)
-    int  gen;                 // current search generation
+    int*     visitedGen;      // generation stamp per vertex
+    int*     pred;            // predecessor vertexId (valid only if visited this gen)
+    NodeRef* qpool;           // qpool[v] wraps vertex id v for the Data*-based Queue
+    int      scratchSize;     // size of the above arrays (= Vt)
+    int      gen;             // current search generation
 
     // Build the TEG for this graph/horizon (layout only, reservation-free).
     void buildTEG(const Graph& graph, int H);

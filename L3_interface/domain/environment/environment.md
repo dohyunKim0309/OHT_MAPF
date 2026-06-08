@@ -5,6 +5,11 @@ tags: [interface, domain, environment]
 
 # Environment (시뮬레이션 세계)
 
+> **구성 축** (axis-role: top)
+> calls:: [[planner]]
+> uses:: [[graph]]
+> owns:: [[agent]]
+
 ## 위치
 도메인 구성요소. `data_structure/`를 빌려 쓰고, [[planner]]에게 계획을
 요청한다. 의존은 environment → {data_structure, planner} 방향.
@@ -41,10 +46,10 @@ visualizer를 포함한다.
 - 시뮬레이션 루프(시간 진행), throughput 측정, 목표 재부여.
 - visualizer — 세계 상태를 그림으로.
 
-### Agent (구체 Data 자식)
-- **필드**: `int id`, `int priority`, `int current`(현재 노드), `int goal`(목표 노드).
-- `operator<` override: `priority` 비교. PP의 min_heap이 이걸로 우선순위 추출.
-- 소유: environment. min_heap은 비소유로 Agent*를 빌린다.
+### Agent (이 모듈이 소유하는 흐르는 데이터 타입)
+상세 정의는 [[agent]]. 요약: `id`/`priority`/`current`/`goal`을 묶은 `Data` 자식
+(`operator<`=priority). environment가 배열로 **소유**하고, [[planner]]의 [[min_heap]]은
+비소유로 `Agent*`를 빌린다.
 
 ## Environment 인터페이스
 

@@ -5,6 +5,13 @@ tags: [interface, domain, planner]
 
 # planner 모듈 (PrioritizedPlanning + PathFinder)
 
+> **구성 축** (axis-role: middle)
+> called-by:: [[environment]]
+> delegates-to:: [[bfs_teg]]
+> uses:: [[reservation_table]], [[min_heap]], [[graph]]
+> reads:: [[agent]]
+> produces:: [[path]]
+
 ## 위치
 도메인 구성요소. `data_structure/`(공용 토대)를 빌려 쓴다. 의존은
 planner → data_structure 한 방향. environment가 이 모듈의 PP를 호출한다.
@@ -89,17 +96,9 @@ class BellmanPhi : public PathFinder { ... };   // ϕ Bellman-Ford
 
 ### Path
 findPath의 반환 타입. **모든 planner가 공유**하는 공통 구조체다(BfsTeg·ϕ-BF·
-environment가 같은 타입을 쓴다).
-
-- **무엇**: 시각순 노드 배열. `path.at(t)` = 시각 t에 에이전트가 있는 노드.
-  길이는 **H+1**(시각 0..H). 같은 노드가 연속되면 그 시각엔 머무름(대기),
-  목표 도달 후 남은 시각은 목표 노드로 채워진다(정지).
-- **빈 Path**: 길이 0. "horizon 내 경로 없음"(도달 실패)을 뜻한다. `path.empty()`.
-- **소유권/수명**: 내부 `int[]` 버퍼를 **소유하는 RAII** — 소멸자가 해제.
-  복사 불가, **이동(move) 가능**이라 findPath가 값으로 싸게 반환한다. 받은
-  쪽(PP/environment)이 소유.
-- **연산**: `at(t)`(읽기), `set(t, node)`(빌더 측 쓰기), `length()`, `empty()`.
-- environment는 receding이라 반환된 H+1 경로 중 **앞 C스텝만** 실행한다.
+environment가 같은 타입을 쓴다). 상세 정의는 [[path]]. 요약: 길이 H+1 시각순 노드
+배열(`at(t)`), 빈 Path=도달 실패, `int[]` 소유 RAII(이동 가능·복사 불가), [[data]]는
+상속하지 않음. environment는 receding이라 앞 **C스텝만** 실행한다.
 
 ## PP 흐름 (한 라운드, 전체 에이전트 조율)
 

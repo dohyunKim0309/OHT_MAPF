@@ -24,6 +24,8 @@ add_executable(OHT_MAPF L5_implementation/main.cpp
         L5_implementation/planner/pathfinding.h
         L5_implementation/planner/bfs_teg.cpp
         L5_implementation/planner/bfs_teg.h
+        L5_implementation/planner/bellman_phi.cpp
+        L5_implementation/planner/bellman_phi.h
         L5_implementation/planner/reservation_table/reservation_table.cpp
         L5_implementation/planner/reservation_table/reservation_table.h
         L5_implementation/planner/prioritized_planning.cpp
