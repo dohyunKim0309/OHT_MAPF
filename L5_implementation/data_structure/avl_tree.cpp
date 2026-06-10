@@ -199,7 +199,7 @@ void AvlTree::destroy(AvlTreeNode* node) {
     delete node;   // node only; the stored Data* is non-owning.
 }
 
-// Like destroy, but also deletes each stored Data* (caller-owned, opt-in).
+// Like destroy, but also deletes each stored Data*
 void AvlTree::destroyAndDelete(AvlTreeNode* node) {
     if (node == nullptr) return;
     destroyAndDelete(node->getLeft());

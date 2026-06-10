@@ -22,7 +22,8 @@ public:
     BfsTeg();
     ~BfsTeg() override;
 
-    Path findPath(int start, int goal,
+    Path findPath(int start,
+                  const int* goals, int goalCount, int dwell,
                   const Graph& graph,
                   const ReservationTable& reservation,
                   int H) override;
@@ -44,6 +45,10 @@ private:
     void buildTEG(const Graph& graph, int H);
     // Ensure scratch arrays are at least `size`; (re)allocate if needed.
     void ensureScratch(int size);
+    // BFS over the TEG from srcVertex to the first vertex with node==goal (uses the
+    // current `gen`; caller bumps gen per segment). Returns goal vertex id or -1.
+    int bfsToGoal(int srcVertex, int goal, const ReservationTable& reservation,
+                  int stride);
 };
 
 #endif //OHT_MAPF_BFS_TEG_H

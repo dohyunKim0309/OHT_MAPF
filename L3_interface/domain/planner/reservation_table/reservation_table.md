@@ -60,6 +60,22 @@ tags: [interface, domain, planner, reservation_table]
   BFS+TEG가 TEG 빌드 시 점유 정점 제거 필터로 쓴다.
 - **interval query** `phi(x, t)`: t 이상이면서 진입 가능한 가장 이른 시각.
   t가 어떤 구간에도 없으면 t, 구간 `[c,d)`에 들면 d. ϕ-BF가 쓴다.
+- **window query** `phiWindow(x, t, len)`: `t` 이상이면서 노드 x가 **`len`스텝 연속**
+  비는 가장 이른 시각 `s`(즉 `[s, s+len)` 전체가 빔). ϕ-BF의 **dwell 창**(`len=1+dwell`)
+  확보에 쓴다 — 도착 한 시점만 보장하는 `phi`로는 머무는 구간을 못 지키기 때문.
+  `phi`/successor 합성 또는 전용 구현. (`len=1`이면 `phi`와 동일.)
+
+### 점유 기록 규약 (occupancy convention)
+에이전트가 경로상 **각 노드에 머무는 전 구간**을 점유로 기록한다. PP의 recordPath가
+매 시각 `path.at(t)`를 `[t,t+1)`로 reserve하고 reserve의 병합이 인접 구간을 합치므로,
+*경로가 시각별 위치를 빈틈없이 채우기만 하면* 아래가 자동 성립한다:
+- **목표 도착·작업 정지**: 도착 `t`면 `[t, t+1+dwell)` 점유(도착 1칸 + 작업 `dwell`칸).
+  dwell=0이면 `[t, t+1)`.
+- **이동 중 대기**: 다음 노드 진입이 점유 `[a,b)` 때문에 `b`로 밀리면, 진입 직전 노드를
+  `[직전 도착시각, b)` 점유(거기서 기다림).
+
+이 규약이 충돌 회피의 근거다 — 모든 머무름(이동 대기·작업 정지)이 reservation에 유한
+구간으로 남아 다음(낮은 우선순위) 에이전트가 회피한다.
 
 **소유권**: Interval(`Data*`)은 ReservationTable이 **소유**한다(트리에 넣을 때
 new). 다만 정리는 avl_tree의 `clearAndDelete()`에 *위임*한다 — 트리가 내부를

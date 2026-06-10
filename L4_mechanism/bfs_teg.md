@@ -35,8 +35,12 @@ H는 "간선 하나"가 아니라 **경로 전체 홉 수**만큼 커야 도달 
 ### public
 - 없음 (`PathFinder` 인터페이스만).
 
-### private
-- 없음 (탐색 상태·TEG는 `findPath` 안의 지역 — 호출마다 새로).
+### private (모두 멤버 — 재사용)
+- `TimeExpandedGraph* teg` — layout·H로 1회 빌드해 들고 PP 전체가 재사용(RAII).
+- `int builtH` — 현재 teg가 빌드된 horizon(다르면 재빌드).
+- `int* visitedGen` / `int* pred` / `NodeRef* qpool` — BFS 스크래치(세대 카운터로
+  매 탐색 O(1) 무효화, 큐는 Data* 기반 Queue + NodeRef 풀). 크기 V·(H+1).
+- `int gen` — 현재 탐색 세대.
 
 ---
 
@@ -44,47 +48,43 @@ H는 "간선 하나"가 아니라 **경로 전체 홉 수**만큼 커야 도달 
 
 ### public
 
-#### `Path findPath(start, goal, graph, reservation, H)` — TEG(재사용) + BFS
-- **사전**: `start`/`goal`은 원본 노드(`< graph.originalSize()`). `graph`는
-  unweighted 확장본. `reservation` 읽기 전용. `H ≥ 0`.
-- **사후**: horizon 내 최早 도달 경로를 [[planner#Path|Path]](길이 H+1)로 반환.
-  못 찾으면 빈 Path. 반환 경로는 점유 정점을 피한다. (Path 상세는 [[planner#Path]].)
-- **소유권**: 멤버 `teg`는 1회 빌드 후 재사용(소멸자가 해제). visited/pred/q
-  지역 배열은 함수 끝에 해제. 반환 Path는 호출자 소유.
+#### `Path findPath(start, goals[], goalCount, dwell, graph, reservation, H)` — TEG(재사용) + 구간별 BFS
+- **사전**: `start`·`goals[]`는 원본 노드. `graph`는 unweighted 확장본. `reservation`
+  읽기 전용. `H ≥ 0`, `dwell ≥ 0`.
+- **사후**: start에서 `goals`를 순서대로 향하며 각 목표서 `dwell`스텝 작업 정지, 그
+  궤적의 앞 H+1스텝을 [[path|Path]]로 반환. 목표가 H 너머면 그 방향 부분 경로. 빈 Path는
+  *시작조차 못 떠날 때*뿐. 반환 경로는 점유 (node,t)를 피한다.
+- **소유권**: 멤버 `teg`는 1회 빌드 후 재사용. visited/pred 멤버 스크래치 재사용. 반환
+  Path는 호출자 소유.
+
+**구조**: TEG 정점은 `(node,t)`라 시간이 이미 박혀 있다. 그래서 한 구간 BFS가 `(cur,t0)`
+에서 `(goals[k], ·)`까지 가고, **dwell은 그 목표에서 wait 간선 `dwell`개**(=`(g,t)→(g,t+1)`)
+로 이어진다. wait 간선도 BFS가 `isFree`로 점검하므로 **dwell 중 점유 회피가 자동**이다
+(ϕ-BF가 `dwellStart`로 따로 처리해야 하는 것과 대비 — 여기선 시간확장 덕에 공짜).
 
 ```
-findPath(start, goal, graph, reservation, H):
-    if not reservation.isFree(start, 0):
-        return empty                           // 시작부터 막힘
+findPath(start, goals, goalCount, dwell, graph, reservation, H):
+    if not reservation.isFree(start, 0): return empty   // 시작부터 막힘
+    if teg is null or builtH != H: buildTEG(graph, H)    // 멤버 TEG 1회 빌드
+    ensureScratch(graph.size()*(H+1))
 
-    if teg is null or builtH != H:             // 멤버 TEG 1회 빌드(이후 재사용)
-        buildTEG(graph, H)
-
-    Vt = graph.size()*(H+1)
-    ensureScratch(Vt)        // visitedGen/pred/q 멤버 1회 할당(이후 재사용)
-    gen += 1                 // 세대 증가 — 이전 탐색 표시가 일괄 무효(초기화 O(1))
-
-    s = id(start, 0)
-    visitedGen[s] = gen;  pred[s] = -1
-    q.enqueue(s)
-
-    goalVertex = -1
-    while not q.isEmpty():
-        cur = q.dequeue()
-        if cur/(H+1) == goal:                  // node 부분이 goal
-            goalVertex = cur; break            // BFS 첫 도달 = 최早
-        for i in 0 .. teg.degree(cur)-1:       // TEG 간선 따라
-            nxt = teg.neighbor(cur, i)
-            if visitedGen[nxt] == gen: continue   // 이번 탐색에서 방문함
-            // reservation 흡수(탐색 시): 점유된 (node,t) 스킵
-            if not reservation.isFree(nxt/(H+1), nxt%(H+1)): continue
-            visitedGen[nxt] = gen
-            pred[nxt] = cur
-            q.enqueue(nxt)
-
-    if goalVertex == -1: return empty
-    return reconstruct(goalVertex, pred, H, goal)
+    src = id(start, 0)                       // 현재 시공간 정점
+    pred[src] = -1; (src 시드)
+    for k in 0 .. goalCount-1:
+        // (1) src 에서 goals[k] 에 처음 닿는 (goals[k], tArr) 까지 BFS (gen++ 재사용)
+        gv = bfsToNode(src, goals[k], H)     // 못 닿으면(=horizon 밖) 중단
+        if gv == -1: break
+        // (2) dwell: (goals[k], tArr)서 wait 간선 dwell개 — 점유 [tArr, tArr+1+dwell)
+        //     (도착 1칸 + 작업 dwell칸). 각 wait 칸 (g,t)를 isFree로 점검하므로, 창이
+        //     점유돼 못 머물면 그 wait 가 막혀 BFS가 *더 늦은 도착*을 자연히 택한다
+        //     — ϕ-BF의 dwellStart 에 해당하는 처리가 시간확장만으로 공짜.
+        gv = dwellViaWaits(gv, dwell, H)     // (goals[k], tArr+dwell) 또는 H 절단
+        src = gv
+        if time(src) >= H: break             // horizon 다 참
+    return reconstructChain(src, pred, H, goals, goalCount)
 ```
+(BFS는 한 TEG에서 구간마다 `gen++`로 재사용. dwell·이동 모두 같은 `isFree` 점검을
+거치므로 dwell 점유 함정[ϕ-BF의 dwellStart]이 구조적으로 없다.)
 
 ### private
 
@@ -95,6 +95,11 @@ findPath(start, goal, graph, reservation, H):
   **reservation은 보지 않는다**(점유 흡수는 탐색 시 findPath가 함). `builtH=H`.
 - **소유권**: 멤버 `teg`를 (재)생성. 이전 teg가 있으면 먼저 해제. 1회 빌드 후
   PP의 모든 에이전트가 공유 — 빌드 N회→1회.
+- **병렬 빌드**(2026-06-08): 이 빌드가 BFS+TEG의 주 비용(큰 H에서). `addEdge(from,·)`는
+  `from = u*(H+1)+t` 행에만 쓰므로, 외곽 `u` 루프를 하드웨어 스레드 수만큼 분할하면 각
+  스레드가 *서로 disjoint한 행*만 채워 **공유 쓰기·락 없이** 병렬화된다. 알고리즘·자료
+  구조는 불변 — *빌드 방식*만 멀티코어. ThreadSanitizer로 무경쟁 검증, 결과 동일(충돌 0).
+  (실측 4코어: 1회 빌드 370→209ms.)
 
 ```
 buildTEG(graph, H):
@@ -148,6 +153,11 @@ reconstruct(goalVertex, pred, H, goal):
 - **세대 카운터**: visitedGen/pred/q를 멤버로 1회 할당, 매 findPath에 `gen += 1`로
   방문 표시를 O(1) 무효화(전체 초기화 X). `visitedGen[v]==gen`이면 이번 탐색 방문.
   found 쿼리가 12ms까지 내려가 초기화 제거 효과 확인. (2026-06-06)
+- **다목표 + dwell**(2026-06-08): 한 TEG 안에서 구간마다 BFS를 이어, `(start,0)`→
+  goals[0]→(wait dwell)→goals[1]→… 한다. **dwell은 wait 간선 `dwell`개**라 각 `(g,t)`가
+  `isFree`로 점검돼 dwell 중 점유 회피가 자동(ϕ-BF는 `dwellStart`로 별도 처리해야 하는
+  것과 대비 — 시간확장의 이점). 무한 정지 없음 → target conflict 해소. 구간마다 `gen++`로
+  스크래치 재사용.
 
 ## 미결
 - **empty(도달 실패) 쿼리 병목**: 목표 도달 못 하면 BFS가 horizon 내 도달 가능

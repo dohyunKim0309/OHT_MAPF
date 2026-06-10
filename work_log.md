@@ -347,3 +347,139 @@ LLM 컨텍스트에 들어오지 못하는 것을 막는다.
   ϕ-BF 시뮬레이션 14에이전트 이동 애니메이션(재생/시크). viz_export.cpp로 궤적 JSON
   덤프(원본 노드로 snap), Python으로 좌표 계산. stuck 에이전트 사라짐 버그 수정(재추첨,
   단 근본은 위 horizon 이슈). viz_export.cpp·_preview*.png는 임시 산출물.
+- **결정 〔메타/시각화〕 폐기** — 위 FAB 시각화(`viz/`·`viz_export.cpp`)는 너무 크고
+  처음 보는 사람이 이해 어려워 발표·보고서에 부적합 → 인간이 전량 삭제 결정
+  (`rm -rf viz L5_implementation/viz_export.cpp`). 코어 빌드 영향 없음(standalone).
+  단 `NodeRef`의 pathfinding.h 이동은 BfsTeg·BellmanPhi 코어가 쓰므로 유지.
+- **결정 〔메타/보고서〕 프레이밍 전환**(인간) — ϕ-BF는 단순 비교 대상이 아니라 **필자가
+  제안·구현한 접근**(기존 Dijkstra/A\*/BFS/DFS 시간확장 길찾기의 비효율 개선 목적, 하드웨어
+  연계 가능성 염두). 이 프로젝트의 목적 = 그 접근을 *소프트웨어로 정량 비교/검증*. 수위는
+  '제안·구현한 접근'(발명·특허 주장 안 함, 인간 결정). 보고서 반영: Intro "Why this
+  project"를 "기존 길찾기 → 시간확장 비효율 → ϕ-BF 제안 → SW 정량비교가 목적"으로 재서술,
+  Function Realization 4.3을 두 알고리즘(BFS+TEG vs ϕ-BF) 비교 구조로(같은 reservation을
+  isFree point query vs phi interval query로 읽는 대비 = 자료구조 논거 강화), Example
+  Case 5.2에 검증(200/200·도착시각 일치)+속도비교표(~220–480배), Conclusion 재작성.
+  자료구조 수업 채점 핵심(WHERE/HOW/WHY)은 유지 — 효율차가 *자료구조차*라 양립. 13쪽
+  (10쪽 축소는 다음 턴, 인간: 이번엔 내용 보존·추가 우선).
+- **확인 〔도메인〕** queue 실사용 검증(인간 질문) — `Queue` 클래스가 두 planner에서 실제
+  사용됨: bfs_teg.cpp(BFS frontier, enqueue/dequeue), bellman_phi.cpp(SPFA 전파 큐).
+  둘 다 노드 id를 `NodeRef*`로 래핑해 Data* 기반 Queue에 태움. 장식 아님 — 시뮬레이션
+  정확성(verify 200/200)이 곧 큐 동작 증명.
+- **결정 〔도메인〕** main.cpp **compare 모드** 추가(인간) — 같은 시드/설정으로 BFS+TEG·
+  ϕ-BF를 둘 다 돌려 goals·thr·ms/round를 나란히 + "same result/speedup" 출력. 캡처용
+  단일 컴팩트 출력. 기본 mode=compare, 큰 기본값(100에이전트·H1500·C200·10R). bfs/phi
+  단일 모드도 유지. 실측(20·H400·C50·4R): 둘 다 5도달/0.0250, 527배. 무경고 빌드.
+- **결정 〔메타/보고서〕** (인간) ① Stack 미채택 절을 한 문단→3줄로 축약. ② Example
+  Case(§5)를 **Results & Comparison 한 절로 압축** — BFS-only 스크린샷·agent 스케일링
+  표 제거, 검증(200/200)+ϕ-BF 우월 논거 유지. **두 알고리즘 정량비교 스크린샷은 자리만
+  비워둠**(회색 placeholder) — 인간이 compare 모드 큰 설정으로 실행·캡처 후 수치 채울
+  예정. 12쪽.
+
+### 2026-06-08
+
+- **결정 〔도메인〕** 보고서 한글 렌더 — NanumGothic을 `report/fonts/`에 동봉, 컴파일은
+  `--font-path fonts`. /tmp 폰트가 세션 간 휘발해 깨지던 것 해결. 표지 한글 렌더 확인.
+- **결정 〔도메인〕** findPath **부분 경로 반환**으로 변경(인간) — H 안에 목표 미도달이어도
+  빈 Path 대신 *목표까지 경로의 앞 H+1스텝* 반환. ϕ-BF는 H 제한 없이 목표까지 완화 후
+  절단(O(V) 유지). 실측: H=200(작은 시야)에서도 throughput 0.0320(=H=600) — 먼 목표가
+  더는 얼지 않음. L3(pathfinding.h)·L4(bellman_phi.md) 갱신.
+- **막힘→진단 〔도메인〕** 부분경로 검증 강화차 *PP 루프 전체* 충돌 체커 신설 →
+  **기존부터 있던 target conflict 발견**(내 변경 탓 아님; BFS+TEG·ϕ-BF 둘 다). 단일
+  planRound에 vertex 충돌 4~5건. verify_phi는 단일 에이전트만 봐서 못 잡았음. 정밀 추적:
+  저순위 에이전트가 목표에 일찍 도달해 **H까지 무한 정지(idle)**, 그 정지 점유를 *먼저
+  계획되는* 고순위 에이전트가 통과. commit 창(C) 작으면 실행구간엔 안 나타나나(C=50: 0,
+  C=200: 1) 근본 버그. 원인 = 무한 idle + 우선순위 순 기록.
+- **결정 〔도메인〕 근본 해법**(인간) — 무한 idle 제거: 에이전트에 **무한 목표 스트림**(도달
+  시 랜덤 다음 목표 즉시 공급) + **도달 시 10스텝 작업 정지**(fab의 적재/하역 모델링).
+  findPath를 **다목표**로 확장 — start→goal1 도달→10스텝 dwell→goal2→… H를 정지 없이
+  채움. 유한 dwell이라 점유가 기록돼 회피 가능 → target conflict 소멸. 작업 항목 #13~15로
+  분해(L3/L4 계약 → 두 planner 구현 → environment 목표스트림+검증). PathFinder 계약을
+  단일→다목표로 바꾸는 큰 변경이라 L3→L4→L5 순으로 진행 예정.
+- **주의 〔메타/보고서〕** 보고서의 "verified collision-free, 200/200"은 *단일 에이전트*
+  기준이었음. PP 전체 충돌 회피는 위 수정 완료 후에야 정직하게 주장 가능 — 수정 전까지
+  보고서 그 문구 보류/조정 필요.
+- **결정 〔도메인〕 L3 계약 갱신(다목표)** — `findPath(start, goal, …)` →
+  `findPath(start, goals[], goalCount, dwell, …)`. 계약: start에서 목표 시퀀스를 순서대로
+  방문, 도달 목표마다 `dwell`스텝 작업 정지 후 다음 목표로, H+1스텝 채워 반환. 무한 정지
+  없음 → target conflict 회피. 빈 Path=시작 불가일 때만. 갱신 문서: pathfinding.h(계약
+  source), planner.md(PathFinder 계약·planRound에 dwell 추가), bellman_phi.md·bfs_teg.md
+  (목표 이어붙이기), agent.md(단일 goal→목표 시퀀스 goals[K]+goalCount), path.md(정지=
+  대기/작업, 무한정지 없음), environment.md(무한 목표 스트림·도달 시 보충). 코드 미구현
+  (L5는 task #14) — 지금은 계약만, 빌드 안 됨(시그니처 변경). 다음: L4 기전 → L5 구현.
+- **결정 〔메타〕 L3 planner 폴더 재편**(인간) — `L3_interface/domain/planner/`에
+  **`pathfinding/` 신설**, `bfs_teg.md`·`bellman_phi.md`를 그 아래로 이동(`mv`는 마운트에서
+  됨; 삭제만 막힘). `pathfinding/pathfinding.md` 신설 — PathFinder 추상 계약을 planner.md에서
+  분리해 직접 서술(계약·두 불변식[무한정지 없음=target conflict 회피, 최적성 동일·비용만
+  차이]·isFree vs phi 비교표·탐색 도달범위·구현 인덱스). **planner.md를 PrioritizedPlanning
+  전용으로 재작성**(가독성 — 역할/인터페이스/한 라운드 흐름/구성요소로 정리, PathFinder
+  계약은 [[pathfinding]]에 위임). 이동·분리로 깨진 링크 일괄 수정: `[[planner|PathFinder]]`
+  →`[[pathfinding|PathFinder]]`, `[[planner#Path]]`→`[[path]]`. 전 위키링크 유일 해석 확인.
+- **결정 〔도메인〕 L4 기전 갱신(다목표+dwell)** — 네 문서 갱신: bellman_phi.md(단일목표
+  완화를 `relaxToGoal`로 구간화, `dwellStart`로 dwell 창 확보, `fillSegment`로 시각별
+  채움+절단), bfs_teg.md(한 TEG에서 구간별 BFS, dwell=wait 간선 dwell개), prioritized_
+  planning.md(planRound에 dwell·목표 시퀀스 전달, 빈 Path=시작불가로 의미 정정),
+  environment.md(무한 목표 스트림·도달 시 보충·dwell). 옛 단일목표 시그니처 잔존 0 확인.
+- **발견 〔도메인〕 자체 검토로 사전 포착한 함정** — ϕ-BF의 **dwell 창 점유**: 목표서
+  `[arriveT, arriveT+dwell)` 정지하려면 *구간 전체*가 비어야 하는데 `phi`는 도착 한 시점만
+  보장. 안 막으면 dwell 중 고순위가 그 노드를 지나 충돌(직전 target conflict의 dwell 판).
+  → `dwellStart`로 빈 dwell 창까지 도착을 늦춤. **BFS+TEG는 dwell=wait 간선이라 isFree가
+  자동 점검 → 이 함정 구조적으로 없음**(시간확장의 이점, 비대칭). 그 외 점검한 경계:
+  goal==현재노드(거리0), H 경계 절단, 목표 큐 H 전 소진(→environment가 넉넉히 공급).
+- **주의 〔도메인〕** L4까지 다목표로 바뀌어 L5 코드(현재 단일목표 partial-path 버전)와
+  불일치 — 빌드 안 됨. 다음(task #14 L5·#15 environment)에서 코드 일치시키고 PP-루프
+  충돌 0 검증.
+- **결정 〔도메인〕 dwell·점유 규약 확정**(인간) — dwell은 핵심 기능(없애지 않음), 기본
+  **dwell=1**. 의미: **도착 + 추가 dwell** → 목표 점유 `[t, t+1+dwell)`(도착 1칸 + 작업
+  dwell칸); dwell=0이면 `[t,t+1)`. 출발 시각 = `arriveT+1+dwell`. ϕ-BF는 그 창이 전부
+  비도록 `phiWindow(x,t,len=1+dwell)`로 도착을 늦춤(dwellStart). **대기 점유 규약**(인간):
+  이동 중 v 진입이 `[a,b)`로 밀리면 직전 노드를 `[직전도착, b)` 점유. 모두 recordPath의
+  매-시각 reserve+병합으로 자동 기록(경로가 시각별 위치만 채우면 됨). 새 연산
+  `phiWindow`를 reservation_table에 추가(L3 .md + L5 .h). L4(bellman_phi·bfs_teg·
+  prioritized_planning·environment) 전부 `1+dwell`로 갱신. BFS+TEG는 dwell=wait 간선이라
+  isFree가 자동 점검 → dwellStart 함정 없음(비대칭).
+- **결정 〔메타/방법론〕 문제 설정을 L2로**(인간) — dwell·목표 스트림·충돌 모델은 모듈
+  구현이 아니라 *문제를 어떻게 정의했나*이므로 L2 축. `L2_structure/problem_formulation.md`
+  신설(보고서 Problem formulation과 일치, L2 추상도): 세계(directed 정수가중)·이산시간+
+  가상노드·에이전트 행동(무한 목표 스트림+dwell)·충돌 모델(노드만, swap 없음)·점유 규약·
+  receding PP 틀·범위. L1 README·CLAUDE.md 인덱스에서 링크. L3/L4의 흩어진 dwell/충돌
+  서술이 이 문서를 상위로 가리킴(중복→단일 출처). 전 위키링크 해석 확인.
+- **검사 〔메타〕 L2–L3–L4 일관성 점검**(인간 요청) — BellmanPhi·BfsTeg·Planner 세 층
+  교차 검토. 결과 `CONSISTENCY_CHECK.md`(임시). 해소: C1 BfsTeg L4 Fields "TEG=지역"↔
+  본문·L3·L5 "멤버" 모순 → 멤버로 수정. C3 BfsTeg 반환형식 절 단일목표 잔존 → 다목표·
+  dwell·부분경로로. C5 system_architecture sequence 옛 findPath/새목표 → 다목표·dwell·
+  목표스트림. C6 BfsTeg L3 "명시적/암묵적 TEG 미결" → 명시적 확정으로 닫음. **C2(설계
+  확정)**: BFS+TEG H제한(먼 목표=빈 Path) vs ϕ-BF partial의 비대칭을 *의도된 비교 축*
+  으로 pathfinding 계약에 명시(인간) — "H 키우면 V·(H+1) 폭발 = ϕ-BF 우월의 측정값".
+  C4(L5 코드 단일목표 잔존)는 기지 — task #15에서 갱신. 일관 양호: PathFinder 계약·
+  BellmanPhi·점유 규약·data_types·problem_formulation·isFree/phi 비교축.
+- **결정 〔도메인〕 L5 다목표+dwell 구현 완료** — Agent에 목표 큐(goalBuf[GOAL_CAP=8],
+  pushGoal/popGoal/currentGoal/goals/goalCount), findPath 시그니처 다목표화(두 planner+PP),
+  reservation_table에 `phiWindow(x,t,len)` 구현(successor로 빈 창 판정). BellmanPhi:
+  relaxToGoal(세대 카운터로 구간 재사용)+dwellStart(phiWindow)+구간별 fillSegment, 목표
+  이어붙임. BfsTeg: 한 TEG에서 구간별 bfsToGoal+wait 간선 dwell, **꼬리 무조건 idle 채움**
+  (안 하면 -1 잔존→reserve 범위초과 assert; H=500에서 잡음). PP planRound에 dwell·목표
+  시퀀스 전달. Environment: 무한 목표 스트림(초기 GOAL_CAP개, 도달 시 pop+push), dwell
+  기본 1.
+- **발견/수정 〔도메인〕 자체 검증으로 잡은 버그** — BfsTeg가 세그먼트 실패 시 path 꼬리에
+  -1 잔존 → recordPath가 node -1 reserve해 범위초과 assert(H=500 다중라운드). 꼬리 무조건
+  idle 채움 + recordPath에 -1 가드로 수정.
+- **검증 〔도메인〕 PP-루프 충돌 0 달성**(이번 rework의 목표) — 신규 collide 체커(다목표
+  Agent API): 20에이전트, H=300/500, dwell=0/1/2/3, 다라운드 → **두 planner 모두 committed
+  충돌 0, bad-edge 0**. target conflict 해소 확인. `-Wall -Wextra` 무경고 + ASan/UBSan
+  무누수. 성공 조건(같은 H·C·priority→동일 결과): H=700·10에이전트·4R에서 **둘 다 4도달/
+  0.0100, 372배** 확인(YES). 작은 H(400)에선 BFS+TEG가 먼 목표 못 닿아 결과 다름=C2의
+  의도된 비대칭. main.cpp에 dwell 인자 추가 + 보고서용 큰 기본값(200에이전트·H2000),
+  compare/bfs/phi 모드. phi-only 大 실측: 200에이전트·H2000·10R → 751도달·0.3755·~1.15s/R.
+- **결정 〔도메인〕 buildTEG 멀티코어 병렬화**(인간: 구조·로직 불변, 코어만 활용) —
+  BFS+TEG의 주 비용은 큰 H에서 TEG 빌드. `addEdge(from,·)`가 `from=u*(H+1)+t` 행에만
+  써서, 외곽 `u` 루프를 `std::thread`로 하드웨어 스레드 수만큼 분할 → 각 스레드가 disjoint
+  행만 채워 **락·공유쓰기 없이** 병렬. 알고리즘·자료구조 불변, *빌드 방식*만 변경.
+  CMake에 Threads 링크. 검증: 충돌 0 동일(결과 불변), ASan/UBSan 무누수, **TSan 무경쟁**.
+  실측(4코어 샌드박스): 빌드 370→209ms(~1.8배). 단 메모리대역폭 바운드라 코어수만큼은 안
+  나고, 약한 멀티코어(샌드박스)에선 스레드 오버헤드로 되레 느려질 수도 — M4 Max(12코어·
+  높은 대역폭)에선 이득 기대. 메모리 최적화(qpool 등)는 인간이 보류(구조 변경 회피).
+- **메모/검토** 메모리 분석: H=2000이면 TEG 스크래치 ~1GB(NodeRef 풀 670MB+visited/pred
+  340MB) — M4 Max엔 용량은 여유. 진짜 병목은 *빌드 시간/메모리 대역폭*. qpool(Data* 큐용
+  NodeRef Vt개)이 가장 큰 단일 항목이나, int 전용 컨테이너 직접구현/템플릿은 자료구조
+  설계·수업범위 이슈로 보류. int↔Data* 캐스팅은 nullptr충돌·역참조크래시·플랫폼의존으로
+  비채택.

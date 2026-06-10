@@ -25,9 +25,10 @@ public:
     PrioritizedPlanning(PathFinder* finder, const Graph& graph, int nodeCount);
 
     // Plan one round. out must point to n Path slots (caller-owned).
-    // out[i] = agent i's H-step Path (empty Path if unreachable within H).
-    // Higher priority is planned first and reserved; lower priority avoids it.
-    void planRound(Agent* agents, int n, int H, Path* out);
+    // out[i] = agent i's H-step Path (visiting its goal queue with `dwell` work
+    // steps per reached goal). Higher priority is planned first and reserved;
+    // lower priority avoids it.
+    void planRound(Agent* agents, int n, int H, int dwell, Path* out);
 
 private:
     PathFinder* finder;             // injected single-agent search (non-owning)

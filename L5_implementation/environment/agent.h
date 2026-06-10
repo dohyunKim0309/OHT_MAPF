@@ -7,34 +7,43 @@
 
 #include "../data_structure/data.h"
 
-// Agent: one mobile unit in the simulation world — just a bundle of data
-// (id, priority, current node, goal node), like Interval bundles [start,end).
-// A concrete Data child so PP's MinHeap can order it by priority via operator<.
-// Fields are private; access through getters, mutate the two changing fields
-// (current/goal) through setters. Ownership lives with the Environment; PP only
-// borrows Agent* into its priority queue.
-// Contract: L3_interface/domain/environment/README.md (#Agent)
+// Agent: one mobile unit in the simulation world — a bundle of data: id, priority,
+// current node, and a GOAL QUEUE (the next goals to visit, in order). A concrete
+// Data child so PP's MinHeap can order it by priority via operator<.
+// The goal queue (not a single goal) exists so an agent that reaches a goal does
+// NOT idle forever: it dwells a few work steps and heads to the next goal — which
+// is what avoids the target conflict. The Environment owns the agent and keeps the
+// queue filled from an infinite random stream; PP reads current + goals and passes
+// them to findPath. Fields private; getters + mutators below.
+// Contract: L3_interface/data_types/agent.md
 class Agent : public Data {
 public:
+    static const int GOAL_CAP = 12;  // goal lookahead capacity (enough to cover H)
+
     Agent();
-    Agent(int id, int priority, int current, int goal);
+    Agent(int id, int priority, int current);
 
     int getId() const;
     int getPriority() const;
     int getCurrent() const;
-    int getGoal() const;
+    void setCurrent(int node);       // Environment advances the agent along its path
 
-    void setCurrent(int node);   // Environment advances the agent along its path
-    void setGoal(int node);      // Environment assigns a new goal on arrival
+    // ── goal queue ──────────────────────────────────────────────────────────
+    int  currentGoal() const;        // goals[0] = the goal being headed to (-1 if empty)
+    int  goalCount() const;          // number of queued goals
+    const int* goals() const;        // contiguous goals[0..goalCount) for findPath
+    void pushGoal(int node);         // append a goal (Environment fills the stream)
+    void popGoal();                  // consume goals[0] on arrival (shift the rest)
 
     // Order by priority: smaller priority is popped first by PP's MinHeap.
     bool operator<(const Data& other) const override;
 
 private:
-    int id;        // stable index into the Environment's agent array
-    int priority;  // PP processing order (smaller = planned first)
-    int current;   // current node (original index)
-    int goal;      // target node (original index)
+    int id;                  // stable index into the Environment's agent array
+    int priority;            // PP processing order (smaller = planned first)
+    int current;             // current node (original index)
+    int goalBuf[GOAL_CAP];   // FIFO of upcoming goals, goalBuf[0] = current target
+    int nGoals;              // number of valid entries in goalBuf
 };
 
 #endif //OHT_MAPF_AGENT_H
