@@ -72,7 +72,7 @@ void ReservationTable::reserve(int x, int start, int end) {
         Interval probe(s, e);
         Data* nx = tree.successor(&probe);    // smallest start > s
         if (nx == nullptr) break;
-        Interval* succ = static_cast<Interval*>(nx);
+        auto* succ = static_cast<Interval*>(nx);
         if (!succ->touches(Interval(s, e))) break;
         Interval merged = succ->merge(Interval(s, e));
         s = merged.getStart(); e = merged.getEnd();
@@ -86,7 +86,7 @@ void ReservationTable::reserve(int x, int start, int end) {
         Interval probe(s, e);
         Data* same = tree.find(&probe);
         if (same != nullptr) {
-            Interval* hit = static_cast<Interval*>(same);
+            auto* hit = static_cast<Interval*>(same);
             Interval merged = hit->merge(Interval(s, e));
             s = merged.getStart(); e = merged.getEnd();
             tree.remove(hit);
@@ -139,6 +139,23 @@ int ReservationTable::phi(int x, int t) const {
             }
         }
         if (!blocked) return cur;   // cur is enterable
+    }
+}
+
+int ReservationTable::phiWindow(int x, int t, int len) const {
+    assert(x >= 0 && x < n && "phiWindow: node index out of range");
+    if (len <= 1) return phi(x, t);   // a single instant — same as phi
+    int s = t;
+    while (true) {
+        s = phi(x, s);                // earliest free instant >= s
+        // Is [s, s+len) entirely free? Find the first reserved interval starting
+        // at or after s; if it begins before s+len, the window is blocked.
+        Interval probe(s, s + 1);
+        Data* nx = trees[x].successor(&probe);   // smallest start > s
+        if (nx == nullptr) return s;             // nothing ahead — window is free
+        Interval* iv = static_cast<Interval*>(nx);
+        if (iv->getStart() >= s + len) return s; // gap big enough
+        s = iv->getEnd();                        // jump past the blocker, retry
     }
 }
 

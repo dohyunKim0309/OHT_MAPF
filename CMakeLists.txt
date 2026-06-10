@@ -34,3 +34,8 @@ add_executable(OHT_MAPF L5_implementation/main.cpp
         L5_implementation/environment/agent.h
         L5_implementation/environment/environment.cpp
         L5_implementation/environment/environment.h)
+
+# BfsTeg::buildTEG fills the TEG with std::thread workers (disjoint vertex rows,
+# no shared writes — verified race-free under ThreadSanitizer). Link pthreads.
+find_package(Threads REQUIRED)
+target_link_libraries(OHT_MAPF PRIVATE Threads::Threads)

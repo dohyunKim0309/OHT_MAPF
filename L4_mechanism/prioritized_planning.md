@@ -32,31 +32,34 @@ min_heap에 포인터만 빌려 담는다.
 
 ### public
 
-#### `void planRound(Agent* agents, int n, int H, Path* out)` — 한 라운드 계획
-- **사전**: `agents`는 n개 에이전트(현재 위치·목표·우선순위). `out`은 n칸 배열.
-  `H ≥ 0`.
-- **사후**: `out[i]` = 에이전트 i의 H스텝 [[planner#Path|Path]](못 찾으면 빈
-  Path). 높은 우선순위가 먼저 계획되어 reservation에 기록되고, 낮은 우선순위는
-  그것을 회피. reservation은 이 라운드의 점유로 채워진 상태로 남는다(다음
-  라운드 시작에 다시 clear).
+#### `void planRound(Agent* agents, int n, int H, int dwell, Path* out)` — 한 라운드 계획
+- **사전**: `agents`는 n개 에이전트(현재 위치·**목표 시퀀스**·우선순위). `out`은 n칸
+  배열. `H ≥ 0`, `dwell ≥ 0`.
+- **사후**: `out[i]` = 에이전트 i의 H스텝 [[path|Path]]. 높은 우선순위가 먼저 계획되어
+  reservation에 기록되고, 낮은 우선순위는 그것을 회피. reservation은 이 라운드 점유로
+  채워진 채 남는다(다음 라운드 시작에 clear).
 - **소유권**: `out[i]`(Path)는 호출자(environment) 소유. reservation의 Interval은
   PP 소유(clear가 정리).
 
 ```
-planRound(agents, n, H, out):
+planRound(agents, n, H, dwell, out):
     reservation.clear()                       // 이전 라운드 점유 비움
-
-    // 우선순위 순으로 에이전트 처리 (min_heap: 작은 priority가 먼저)
     heap = MinHeap()
-    for i in 0 .. n-1:
-        heap.push(agents[i])                  // Agent* 빌려 담음 (operator< = priority)
+    for i in 0 .. n-1: heap.push(agents[i])   // 우선순위 순(operator< = priority)
 
     while not heap.isEmpty():
-        a = heap.pop()                        // 다음 우선순위 에이전트
-        path = finder.findPath(a.current, a.goal, *graph, reservation, H)
-        out[a.id] = move(path)                // 그 에이전트 자리에 저장
-        recordPath(out[a.id], H)              // reservation에 점유 기록 (아래)
+        a = heap.pop()
+        // 에이전트의 목표 시퀀스를 dwell 정지와 함께 넘긴다(무한 정지 없음).
+        path = finder.findPath(a.current, a.goals, a.goalCount, dwell,
+                               *graph, reservation, H)
+        out[a.id] = move(path)
+        recordPath(out[a.id], H)              // dwell 정지 포함 전 시각 점유 기록
 ```
+
+> **target conflict 해소의 핵심**: findPath가 *목표 시퀀스*를 받아 도달 후 유한 dwell만
+> 정지하므로, 어떤 에이전트도 한 노드를 영구 점유하지 않는다. 점유가 유한 구간이라
+> 우선순위 순 기록만으로 충돌이 막힌다. (단일 목표 + 무한 정지였을 때는 먼저 계획된
+> 고순위가 저순위의 영구 정지를 못 보고 통과하는 버그가 있었다 — 2026-06-08 수정.)
 
 ### private
 
@@ -76,8 +79,9 @@ recordPath(path, H):
         reservation.reserve(node, t, t+1)     // 병합은 reserve가 알아서
 ```
 
-> 빈 Path(도달 실패) 에이전트는 점유를 기록하지 않는다 — 이번 라운드엔 못 움직임.
-> environment가 그 에이전트를 제자리에 두거나 다음 라운드 재시도.
+> 빈 Path 에이전트는 점유를 기록하지 않는다. 이제 빈 Path는 *도달 실패*가 아니라
+> **시작조차 못 떠날 때**(시작 노드가 t=0에 막힘)만 발생한다 — 먼 목표는 부분 경로를
+> 받으므로(다목표 contract). environment가 그 에이전트를 제자리에 둔다.
 
 ---
 

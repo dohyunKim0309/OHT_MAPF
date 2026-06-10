@@ -34,31 +34,35 @@ receding horizon으로 시뮬레이션을 돌린다 — 매 라운드 [[planner|
 ### public
 
 #### `void step()` — 한 라운드 (계획 → C스텝 실행 → 도달 처리)
-- **사전**: agents가 유효한 현재 위치·목표를 가짐.
-- **사후**: 각 에이전트가 자기 H스텝 경로의 앞 C스텝을 따라 전진. C스텝 안에
-  목표 도달한 에이전트는 카운트++·랜덤 새 목표 부여. `now += C`.
-- **소유권**: PP가 준 Path 배열을 받아 쓰고 라운드 끝에 해제(이동 시맨틱이라
-  Path 배열 보유 후 자동 정리).
+- **사전**: agents가 유효한 현재 위치·**목표 시퀀스**(큐가 차 있음)를 가짐.
+- **사후**: 각 에이전트가 자기 H스텝 경로의 앞 C스텝을 따라 전진. C스텝 안에 현재 목표
+  (`goals[0]`)에 도달한 에이전트는 카운트++, 그 목표를 큐에서 소비하고 **새 랜덤 목표를
+  큐에 보충**(무한 스트림). `now += C`.
+- **소유권**: PP가 준 Path 배열을 받아 쓰고 라운드 끝에 해제.
 
 ```
 step():
-    paths = Path[n]                           // PP 결과 받을 버퍼
-    pp.planRound(agents, n, H, paths)         // 한 라운드 계획
+    paths = Path[n]
+    pp.planRound(agents, n, H, dwell, paths)   // dwell 포함
 
-    for c in 1 .. C:                          // 앞 C스텝 실행
+    for c in 1 .. C:                           // 앞 C스텝 실행
         for i in 0 .. n-1:
-            if paths[i].empty(): continue     // 도달 실패 — 제자리 유지
-            agents[i].current = paths[i].at(c)   // 시각 c의 위치로 전진
-            if agents[i].current == agents[i].goal:
+            if paths[i].empty(): continue      // 시작 막힘 — 제자리
+            agents[i].current = paths[i].at(c) // 시각 c 위치로 전진
+            if agents[i].current == agents[i].currentGoal():   // == goals[0]
                 arrived += 1
-                agents[i].goal = randomOriginalNode(graph)   // 새 목표
-                // 새 목표는 다음 step()의 planRound에 반영됨
+                agents[i].advanceGoal(randomOriginalNode(graph))
+                // 큐에서 도달 목표 소비 + 새 랜덤 목표 보충(큐 항상 채움)
     now += C
 ```
 
-> 주의: 한 에이전트가 C스텝 안에 목표 도달하면, 그 라운드의 남은 스텝 동안
-> 경로는 이미 목표에 정지(reconstruct가 채움)라 위치가 안 바뀐다. 새 목표는
-> *다음 라운드* 계획부터 반영된다(이번 경로는 옛 목표 기준이므로).
+> **무한 정지 없음**: 에이전트가 목표 도달 후 영구 정지하지 않는다 — 경로는 `dwell`스텝
+> 작업 정지 후 *큐의 다음 목표*로 계속 이어간다(findPath 다목표). 이것이 target conflict
+> (목표서 영구 정지하는 저순위를 먼저 계획된 고순위가 통과)를 없앤 핵심. (2026-06-08)
+>
+> **큐를 채워 둔다**: findPath가 H스텝을 정지 없이 채우려면 충분한 목표가 필요하다.
+> environment는 도달마다 보충해 큐를 K개로 유지(K는 H를 덮을 lookahead). 큐가 비면
+> 그 라운드 내 정지가 생길 수 있으므로 보충이 필수.
 
 #### `void run(int rounds)` — step 반복
 ```
@@ -97,8 +101,11 @@ randomOriginalNode(graph):
 
 ## 결정된 정책
 - **receding**: step 한 번 = 한 라운드. H스텝 계획 중 앞 C스텝만 실행. (2026-06-06)
-- **도달 처리**: C스텝 중 목표 도달 시 카운트++·랜덤 새 목표. 새 목표는 다음
-  라운드부터 반영. (2026-06-06)
+- **도달 처리**: C스텝 중 현재 목표 도달 시 카운트++, 큐에서 소비 + 새 랜덤 목표 보충.
+  (2026-06-06; 다목표 큐로 갱신 2026-06-08)
+- **무한 목표 스트림 + dwell**(2026-06-08): 에이전트는 목표 큐를 들고, 도달 시 다음
+  목표를 즉시 보충(무한). 도달 목표마다 `dwell`스텝 작업 정지(fab 적재/하역 모델링).
+  영구 정지가 없어 target conflict가 사라진다.
 - **throughput = arrived / now**, **double 반환**(정수 절단 방지). 관측용
   `arrivedCount()`/`elapsed()` 게터 추가. (2026-06-06)
 

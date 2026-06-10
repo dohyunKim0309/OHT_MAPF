@@ -21,10 +21,11 @@
 class Environment {
 public:
     // Build a world of agentCount agents on `graph`, planning with `pp`.
-    // H = planning horizon, C = commit length (0 < C <= H). Agents start at
-    // random original nodes with random original goals; priority = id.
+    // H = planning horizon, C = commit length (0 < C <= H), dwell = work steps per
+    // reached goal. Agents start at random original nodes; priority = id; each
+    // agent's goal queue is filled from an infinite random stream.
     Environment(const Graph& graph, int agentCount, PrioritizedPlanning* pp,
-                int H, int C);
+                int H, int C, int dwell = 1);
     ~Environment();
 
     void step();               // one round: plan -> advance C steps -> handle arrivals
@@ -41,6 +42,7 @@ private:
     PrioritizedPlanning* pp;// planner (non-owning)
     int H;                  // planning horizon
     int C;                  // commit length (steps actually executed per round)
+    int dwell;              // work-dwell steps spent at each reached goal
     int now;                // elapsed time (accumulated steps)
     int arrived;            // cumulative arrival count
 

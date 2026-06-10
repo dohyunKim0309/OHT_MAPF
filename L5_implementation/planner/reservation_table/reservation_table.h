@@ -56,6 +56,12 @@ public:
     // If t is free, returns t; if t falls in [c,d), returns d (then re-checks).
     int phi(int x, int t) const;
 
+    // Earliest s >= t such that node x is free for `len` CONSECUTIVE steps, i.e.
+    // [s, s+len) is entirely free — window query (ϕ-BF dwell window, len=1+dwell).
+    // phi only guarantees a single arrival instant; a dwell needs the whole window.
+    // len <= 1 reduces to phi(x, t).
+    int phiWindow(int x, int t, int len) const;
+
     // Clear all reservations (delete every Interval), keep the table reusable.
     void clear();
 

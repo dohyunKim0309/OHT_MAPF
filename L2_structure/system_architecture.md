@@ -85,15 +85,15 @@ sequenceDiagram
     participant PF as PathFinder(BfsTeg)
     participant RT as ReservationTable
 
-    ENV->>PP: planRound(agents, n, H, out)
+    ENV->>PP: planRound(agents, n, H, dwell, out)
     Note over PP: reservation.clear()<br/>min_heap에서 우선순위 순 추출
     loop 각 에이전트(우선순위 순)
-        PP->>PF: findPath(start, goal, graph, reservation, H)
-        PF-->>PP: Path (없으면 빈 Path)
+        PP->>PF: findPath(start, goals[], dwell, graph, reservation, H)
+        PF-->>PP: Path (목표 시퀀스+dwell, H+1스텝)
         PP->>RT: 경로의 (node,t) 점유 기록
     end
     PP-->>ENV: out[] = 각 에이전트의 Path
-    Note over ENV: 앞 C스텝만 실행<br/>도달 시 카운트++·새 목표
+    Note over ENV: 앞 C스텝만 실행<br/>도달 시 다음 목표 보충(무한 스트림)
 ```
 
 흐르는 값의 소유·상속은 [[data_types]]: [[agent]]는 Environment 소유(PP가 읽기),

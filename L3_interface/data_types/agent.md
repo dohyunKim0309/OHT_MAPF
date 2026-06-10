@@ -13,9 +13,10 @@ tags: [interface, domain, data-type, agent]
 > read-by:: [[planner]]
 
 ## 무엇
-한 대의 OHT(이동체) 상태를 묶은 값 — `id`, `priority`, 현재 노드, 목표 노드.
+한 대의 OHT(이동체) 상태를 묶은 값 — `id`, `priority`, 현재 노드, **목표 시퀀스**.
 부품이 아니라 **부품 사이를 흐르는 값**이다: [[environment]]가 소유하며, 매 라운드
-[[planner|PrioritizedPlanning]]이 우선순위 순으로 읽어 [[min_heap]]에 빌려 담는다.
+[[planner|PrioritizedPlanning]]이 우선순위 순으로 읽어 [[min_heap]]에 빌려 담고, 그
+목표 시퀀스를 findPath에 넘긴다.
 
 [[interval]]처럼 단순한 데이터 묶음이다 — 필드를 묶고 비교 기준 하나를 정의할 뿐,
 스스로 행동(시뮬레이션·계획)하지 않는다.
@@ -24,9 +25,13 @@ tags: [interface, domain, data-type, agent]
 - `int id` — environment의 에이전트 배열 인덱스(안정적).
 - `int priority` — PP 처리 순서(작을수록 먼저). 기본 `priority = id`(잠정).
 - `int current` — 현재 노드(원본 인덱스). environment가 전진시킬 때 갱신.
-- `int goal` — 목표 노드(원본 인덱스). 도달 시 environment가 새 목표 부여.
+- **목표 시퀀스** `int goals[K]` + `int goalCount` — 앞으로 방문할 목표들(순서대로).
+  단일 목표가 아니라 *큐*인 이유: 한 라운드(H스텝) 안에 목표에 도달해도 **무한 정지하지
+  않고** 다음 목표로 이어가야 target conflict를 피하기 때문(도달 시 `dwell`스텝만 작업
+  정지 후 다음 목표). environment가 무한 스트림으로 채운다(도달 시 다음 랜덤 목표 보충).
+  K는 H를 채우기에 충분한 lookahead.
 
-`current`/`goal`만 가변(setter), `id`/`priority`는 생성 시 고정(getter).
+`current`·목표 시퀀스는 가변(environment가 전진·보충), `id`/`priority`는 고정.
 
 ## 연산
 - `operator<` **override** — `priority` 비교. [[min_heap]]이 우선순위 추출에

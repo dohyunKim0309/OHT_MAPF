@@ -15,10 +15,11 @@ PrioritizedPlanning::PrioritizedPlanning(PathFinder* finder, const Graph& graph,
     assert(finder != nullptr && "PP: needs a PathFinder");
 }
 
-void PrioritizedPlanning::planRound(Agent* agents, int n, int H, Path* out) {
+void PrioritizedPlanning::planRound(Agent* agents, int n, int H, int dwell,
+                                    Path* out) {
     assert((n == 0 || agents != nullptr) && "PP: null agents");
     assert((n == 0 || out != nullptr) && "PP: null out buffer");
-    assert(H >= 0 && "PP: negative horizon");
+    assert(H >= 0 && dwell >= 0 && "PP: bad H/dwell");
 
     reservation.clear();   // drop last round's occupancy
 
@@ -28,7 +29,8 @@ void PrioritizedPlanning::planRound(Agent* agents, int n, int H, Path* out) {
 
     while (!heap.isEmpty()) {
         Agent* a = static_cast<Agent*>(heap.pop());
-        Path path = finder->findPath(a->getCurrent(), a->getGoal(),
+        Path path = finder->findPath(a->getCurrent(),
+                                     a->goals(), a->goalCount(), dwell,
                                      *graph, reservation, H);
         recordPath(path, H);             // reserve before moving the Path out
         out[a->getId()] = std::move(path);
@@ -39,6 +41,7 @@ void PrioritizedPlanning::recordPath(const Path& path, int H) {
     if (path.empty()) return;            // unreachable agent occupies nothing
     for (int t = 0; t <= H; ++t) {
         int node = path.at(t);
+        if (node < 0) continue;          // defensive: a well-formed Path has no gaps
         reservation.reserve(node, t, t + 1);   // reserve() coalesces stays
     }
 }

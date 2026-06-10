@@ -20,20 +20,32 @@ public:
     BellmanPhi();
     ~BellmanPhi() override;
 
-    Path findPath(int start, int goal,
+    Path findPath(int start,
+                  const int* goals, int goalCount, int dwell,
                   const Graph& graph,
                   const ReservationTable& reservation,
                   int H) override;
 
 private:
+    // One reconstructed step: a node and the time the agent ENTERS it.
+    struct Step { int node; int enter; };
+
     // Reusable scratch, (re)allocated when the node count grows. Sized to V.
-    int*     earliest;   // earliest[v] = earliest reachable time at v (INF = unset)
-    int*     pred;       // pred[v] = previous node on the relaxing path (-1 = none)
-    bool*    inQueue;    // dedup flag for SPFA
+    // Per-segment reset via a generation stamp (gen) — no O(V) clear each segment.
+    int*     earliest;   // earliest[v] = earliest reachable time at v (this gen)
+    int*     pred;       // pred[v] = previous node on the relaxing path
+    int*     seen;       // seen[v] == gen  ⇒  earliest[v]/pred[v] valid this segment
+    bool*    inQueue;    // dedup flag for SPFA (also gen-guarded)
     NodeRef* pool;       // pool[v] = a NodeRef wrapping v, enqueued by pointer
+    Step*    pathBuf;    // reconstruction buffer (one segment's node chain), sized V
     int      capacity;   // size of the above arrays
+    int      gen;        // current relaxation generation
 
     void ensureCapacity(int n);
+    // Relax from (src @ t0) to `goal`, no horizon cap. Fills earliest/pred for this
+    // generation; returns the arrival time at goal (INF if truly unreachable).
+    int relaxToGoal(int src, int t0, int goal,
+                    const Graph& graph, const ReservationTable& reservation);
 };
 
 #endif //OHT_MAPF_BELLMAN_PHI_H
