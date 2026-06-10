@@ -1,0 +1,11 @@
+# Treat office/binary files as binary so git never line-ending-normalizes them.
+*.pptx  binary
+*.docx  binary
+*.xlsx  binary
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ttf   binary
+*.otf   binary
