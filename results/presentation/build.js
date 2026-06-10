@@ -110,7 +110,7 @@ function newSlide() { const s = pres.addSlide(); s.background = { color: "FFFFFF
   const c = (t, a = false) => ({ text: t, options: { color: a ? ACC : INK, bold: a, fontFace: BODY, fontSize: 13, align: "center", valign: "middle" } });
   const row = (v, mw, ea, em, pe, n, a = false) => [c(v, a), c(mw, a), c(ea, a), c(em, a), c(pe, a), c(n, a)];
   s.addTable([
-    [hdr("V"), hdr("max w"), hdr("edge avg err"), hdr("edge max err"), hdr("PATH avg err"), hdr("expanded nodes")],
+    [hdr("V·Δt"), hdr("max w"), hdr("edge avg err"), hdr("edge max err"), hdr("PATH avg err"), hdr("expanded nodes")],
     row("1000", "14", "11.8%", "33.3%", "1.6%", "10,312"),
     row("1417", "10", "16.8%", "60.7%", "2.8%", "7,578"),
     row("500  (chosen)", "28", "7.1%", "20.0%", "3.6%", "21,178", true),
@@ -120,7 +120,7 @@ function newSlide() { const s = pres.addSlide(); s.background = { color: "FFFFFF
     { text: "PATH error is the real metric", options: { bold: true, color: ACC } },
     { text: " — edges over/under-round, but a path sums many edges so errors cancel.", options: { color: MUTE } },
   ], { x: 0.7, y: 5.55, w: 11.9, h: 0.4, margin: 0, fontFace: BODY, fontSize: 13 });
-  s.addText("Smaller V → finer steps → a bigger graph, but more accurate.  Chosen V=500: max w = H = 28, path error 3.6%.",
+  s.addText("Smaller V·Δt → finer steps → a bigger graph, but more accurate.  Chosen V·Δt=500: max w = 28, path error 3.6%.",
     { x: 0.7, y: 5.9, w: 11.9, h: 0.4, margin: 0, fontFace: BODY, fontSize: 13, color: MUTE });
 }
 
